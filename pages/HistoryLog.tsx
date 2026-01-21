@@ -1,37 +1,101 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { AppView, VerificationJob } from '../types';
 
 interface HistoryLogProps {
   onNavigate: (view: AppView) => void;
 }
 
+interface JobRecord {
+  id: string;
+  fileName: string;
+  createdAt: string;
+  totalReferences: number;
+  verifiedCount: number;
+  issuesCount: number;
+  status: string;
+}
+
 const HistoryLog: React.FC<HistoryLogProps> = ({ onNavigate }) => {
-  const mockJobs: VerificationJob[] = [
-    { id: '1', fileName: 'thesis_final_v2.bib', date: 'Oct 24, 2023', entriesCount: 142, verifiedCount: 138, issuesCount: 4, warningsCount: 0, status: 'issues' },
-    { id: '2', fileName: 'research_paper_draft.bib', date: 'Oct 20, 2023', entriesCount: 89, verifiedCount: 89, issuesCount: 0, warningsCount: 0, status: 'clean' },
-    { id: '3', fileName: 'journal_submission_v1.bib', date: 'Sep 15, 2023', entriesCount: 210, verifiedCount: 150, issuesCount: 60, warningsCount: 0, status: 'issues' },
-    { id: '4', fileName: 'lab_notes_summary.txt', date: 'Sep 02, 2023', entriesCount: 45, verifiedCount: 42, issuesCount: 3, warningsCount: 0, status: 'issues' }
-  ];
+  const [jobs, setJobs] = useState<JobRecord[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    // Load jobs from localStorage (where they're stored by dev-server)
+    const loadJobs = () => {
+      const jobKeys = Object.keys(localStorage).filter(key => key.startsWith('job_'));
+      const loadedJobs: JobRecord[] = [];
+
+      jobKeys.forEach(key => {
+        try {
+          const jobData = JSON.parse(localStorage.getItem(key) || '{}');
+          if (jobData.fileName) {
+            loadedJobs.push({
+              id: key,
+              fileName: jobData.fileName,
+              createdAt: jobData.createdAt || new Date().toISOString(),
+              totalReferences: jobData.references?.length || 0,
+              verifiedCount: jobData.references?.filter((r: any) => r.status === 'verified').length || 0,
+              issuesCount: jobData.references?.filter((r: any) => r.issues?.length > 0).length || 0,
+              status: jobData.status || 'completed'
+            });
+          }
+        } catch (e) {
+          console.error('Error loading job:', key, e);
+        }
+      });
+
+      // Sort by date (newest first)
+      loadedJobs.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      setJobs(loadedJobs);
+      setLoading(false);
+    };
+
+    loadJobs();
+  }, []);
 
   const handleDownloadAll = () => {
-    // Simulated CSV export logic
+    if (jobs.length === 0) {
+      alert('No jobs to export');
+      return;
+    }
+    
+    // Export real jobs data
     const headers = "Date,Filename,Entries,Verified,Issues,Status\n";
-    const rows = mockJobs.map(job => 
-      `${job.date},${job.fileName},${job.entriesCount},${job.verifiedCount},${job.issuesCount},${job.status}`
-    ).join("\n");
+    const rows = jobs.map(job => {
+      const date = new Date(job.createdAt).toLocaleDateString('en-US', { 
+        year: 'numeric', 
+        month: 'short', 
+        day: 'numeric' 
+      });
+      return `${date},${job.fileName},${job.totalReferences},${job.verifiedCount},${job.issuesCount},${job.status}`;
+    }).join("\n");
     
     const csvContent = "data:text/csv;charset=utf-8," + headers + rows;
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement("a");
     link.setAttribute("href", encodedUri);
-    link.setAttribute("download", "refcheck_history_full.csv");
+    link.setAttribute("download", `refcheck_history_${new Date().toISOString().split('T')[0]}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    
-    alert("Full history export started. Generating CSV for all jobs...");
   };
+
+  const handleViewResults = (jobId: string) => {
+    localStorage.setItem('current_job_id', jobId);
+    onNavigate(AppView.RESULTS);
+  };
+
+  if (loading) {
+    return (
+      <div className="flex-1 max-w-7xl w-full mx-auto px-6 py-12 flex items-center justify-center">
+        <div className="text-center">
+          <div className="size-12 rounded-full border-4 border-primary border-t-transparent animate-spin mx-auto mb-4"></div>
+          <p className="text-slate-500 font-medium">Loading history...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex-1 max-w-7xl w-full mx-auto px-6 py-12 lg:px-10">
@@ -85,45 +149,70 @@ const HistoryLog: React.FC<HistoryLogProps> = ({ onNavigate }) => {
             </tr>
           </thead>
           <tbody className="divide-y divide-border-light font-bold">
-            {mockJobs.map(job => (
-              <tr key={job.id} className="group hover:bg-slate-50 transition-colors">
-                <td className="px-8 py-6 text-slate-400 text-sm">{job.date}</td>
-                <td className="px-8 py-6">
-                  <div className="flex items-center gap-3">
-                    <span className="material-symbols-outlined text-blue-500">description</span>
-                    <span className="text-slate-900">{job.fileName}</span>
-                  </div>
-                </td>
-                <td className="px-8 py-6 text-slate-600">{job.entriesCount}</td>
-                <td className="px-8 py-6">
-                  <div className="flex flex-col sm:flex-row gap-2">
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-green-50 text-success text-[10px] font-black border border-green-100 uppercase tracking-widest">
-                      <span className="size-1.5 rounded-full bg-success"></span>
-                      {job.verifiedCount} Checked
-                    </span>
-                    {job.issuesCount > 0 && (
-                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-50 text-error text-[10px] font-black border border-red-100 uppercase tracking-widest">
-                        <span className="size-1.5 rounded-full bg-error"></span>
-                        {job.issuesCount} Issues
-                      </span>
-                    )}
-                  </div>
-                </td>
-                <td className="px-8 py-6 text-right">
-                  <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+            {jobs.length === 0 ? (
+              <tr>
+                <td colSpan={5} className="px-8 py-12 text-center">
+                  <div className="flex flex-col items-center gap-4">
+                    <span className="material-symbols-outlined text-slate-300 text-[64px]">folder_open</span>
+                    <p className="text-slate-400 font-medium">No verification jobs yet. Upload a file to get started!</p>
                     <button 
-                      onClick={() => onNavigate(AppView.RESULTS)}
-                      className="px-4 py-2 rounded-lg text-primary hover:bg-primary/5 font-black text-[10px] uppercase tracking-widest transition-all"
+                      onClick={() => onNavigate(AppView.NEW_CHECK)}
+                      className="mt-4 px-6 py-3 rounded-xl bg-primary text-white font-bold hover:bg-primary-hover transition-all"
                     >
-                      View Results
-                    </button>
-                    <button className="p-2 rounded-full hover:bg-slate-100 text-slate-400">
-                      <span className="material-symbols-outlined text-[20px]">more_vert</span>
+                      Start New Check
                     </button>
                   </div>
                 </td>
               </tr>
-            ))}
+            ) : (
+              jobs.map(job => {
+                const date = new Date(job.createdAt).toLocaleDateString('en-US', { 
+                  year: 'numeric', 
+                  month: 'short', 
+                  day: 'numeric' 
+                });
+                
+                return (
+                  <tr key={job.id} className="group hover:bg-slate-50 transition-colors">
+                    <td className="px-8 py-6 text-slate-400 text-sm">{date}</td>
+                    <td className="px-8 py-6">
+                      <div className="flex items-center gap-3">
+                        <span className="material-symbols-outlined text-blue-500">description</span>
+                        <span className="text-slate-900">{job.fileName}</span>
+                      </div>
+                    </td>
+                    <td className="px-8 py-6 text-slate-600">{job.totalReferences}</td>
+                    <td className="px-8 py-6">
+                      <div className="flex flex-col sm:flex-row gap-2">
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-green-50 text-success text-[10px] font-black border border-green-100 uppercase tracking-widest">
+                          <span className="size-1.5 rounded-full bg-success"></span>
+                          {job.verifiedCount} Checked
+                        </span>
+                        {job.issuesCount > 0 && (
+                          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-50 text-error text-[10px] font-black border border-red-100 uppercase tracking-widest">
+                            <span className="size-1.5 rounded-full bg-error"></span>
+                            {job.issuesCount} Issues
+                          </span>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-8 py-6 text-right">
+                      <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button 
+                          onClick={() => handleViewResults(job.id)}
+                          className="px-4 py-2 rounded-lg text-primary hover:bg-primary/5 font-black text-[10px] uppercase tracking-widest transition-all"
+                        >
+                          View Results
+                        </button>
+                        <button className="p-2 rounded-full hover:bg-slate-100 text-slate-400">
+                          <span className="material-symbols-outlined text-[20px]">more_vert</span>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })
+            )}
           </tbody>
         </table>
       </div>

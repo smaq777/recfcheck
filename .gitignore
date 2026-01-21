@@ -1,4 +1,38 @@
-# Logs
+# ============================================
+# SENSITIVE - DO NOT COMMIT TO GITHUB
+# ============================================
+
+# Environment Variables - CRITICAL
+.env
+.env.local
+.env.*.local
+.env.production.local
+.env.development.local
+.env.test.local
+
+# Database files with sensitive data
+*.db
+*.sqlite
+*.sqlite3
+database.sql
+*-seed.sql
+database-seed.sql
+create-missing-tables.sql
+init-database.js
+
+# API Keys and Credentials
+*.pem
+*.key
+*.crt
+.ssh/
+.firebase/
+firebase-debug.log
+.firebaserc
+
+# ============================================
+# LOGS AND TEMPORARY FILES
+# ============================================
+
 logs
 *.log
 npm-debug.log*
@@ -6,13 +40,41 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
+.pnpm-debug.log*
+
+# ============================================
+# DEPENDENCIES AND BUILD OUTPUT
+# ============================================
 
 node_modules
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
 dist
 dist-ssr
-*.local
+build
+.next
+out
+.vite/
+.turbo/
 
-# Editor directories and files
+# ============================================
+# LOCAL AND CACHE FILES
+# ============================================
+
+*.local
+.cache/
+.eslintcache
+.stylelintcache
+*.cache
+.nyc_output
+coverage
+
+# ============================================
+# EDITOR AND IDE FILES
+# ============================================
+
 .vscode/*
 !.vscode/extensions.json
 .idea
@@ -22,3 +84,32 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+*.swp
+*.swo
+*~
+.sublime-project
+.sublime-workspace
+
+# ============================================
+# OS-SPECIFIC FILES
+# ============================================
+
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# ============================================
+# TEMPORARY AND BACKUP FILES
+# ============================================
+
+tmp/
+temp/
+*.tmp
+*.backup
+*.bak
+*.old
+.history/
+.vscode-test

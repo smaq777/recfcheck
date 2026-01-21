@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { AppView } from '../types';
-import { sendEmail } from '../api';
+import { sendEmail } from '../services';
 
 interface ForgotPasswordPageProps {
   onNavigate: (view: AppView) => void;

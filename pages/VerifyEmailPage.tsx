@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { AppView } from '../types';
-import { sendEmail } from '../api';
+import { sendEmail } from '../services';
 
 interface VerifyEmailPageProps {
   userEmail: string;

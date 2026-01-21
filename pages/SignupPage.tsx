@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { AppView, UserProfile } from '../types';
-import { sendEmail } from '../api';
+import { sendEmail } from '../services';
 
 interface SignupPageProps {
   onNavigate: (view: AppView) => void;

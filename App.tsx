@@ -13,6 +13,7 @@ import LoginPage from './pages/LoginPage';
 import SignupPage from './pages/SignupPage';
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import VerifyEmailPage from './pages/VerifyEmailPage';
+import { getCurrentUser, logout } from './neon-auth';
 
 const AppHeader: React.FC<{ 
   onViewChange: (view: AppView) => void, 
@@ -92,10 +93,10 @@ const App: React.FC = () => {
 
   // Simulate Auth Listener
   useEffect(() => {
-    // Check local storage for session (Mock)
-    const savedUser = localStorage.getItem('refcheck_user');
-    if (savedUser) {
-      setUser(JSON.parse(savedUser));
+    // Check Neon session
+    const user = getCurrentUser();
+    if (user) {
+      setUser(user as UserProfile);
     }
     setIsLoading(false);
   }, []);
@@ -129,8 +130,8 @@ const App: React.FC = () => {
   };
 
   const handleLogout = () => {
+    logout();
     setUser(null);
-    localStorage.removeItem('refcheck_user');
     setCurrentView(AppView.LANDING);
   };
 

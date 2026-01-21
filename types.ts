@@ -51,9 +51,19 @@ export interface Reference {
   doi?: string;
   canonicalTitle?: string;
   canonicalYear?: number;
+  canonicalAuthors?: string;
   venue?: string;
   abstract?: string;
   isDuplicate?: boolean;
+  duplicateGroupId?: string; // ID to group duplicates together
+  userDecision?: 'accepted' | 'rejected';
+}
+
+export interface DuplicateGroup {
+  id: string;
+  references: Reference[];
+  canonicalReference?: Reference; // The "best" version (highest confidence or has DOI)
+  hasIssues: boolean; // Whether any duplicates have issues beyond duplication
 }
 
 export interface VerificationJob {

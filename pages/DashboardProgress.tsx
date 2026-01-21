@@ -44,32 +44,80 @@ const steps: Step[] = [
 const DashboardProgress: React.FC<DashboardProgressProps> = ({ onNavigate }) => {
   const [progress, setProgress] = useState(0);
   const [activeStepId, setActiveStepId] = useState(1);
+  const [currentStepName, setCurrentStepName] = useState('Parsing Document');
   const [logs, setLogs] = useState<LogEntry[]>([
     { timestamp: new Date().toLocaleTimeString(), message: 'RefCheck Audit Kernel booting...', type: 'start' },
   ]);
 
   useEffect(() => {
-    const interval = setInterval(() => {
-      setProgress(prev => {
-        const next = Math.min(100, prev + Math.random() * 2);
-        const step = steps.find(s => next >= s.range[0] && next <= s.range[1]) || steps[steps.length - 1];
-        
-        if (step.id !== activeStepId) {
-          setActiveStepId(step.id);
-          setLogs(prevLogs => [
-            { timestamp: new Date().toLocaleTimeString(), message: `Switching to ${step.label}`, type: 'info' },
-            ...prevLogs
-          ]);
-        }
+    const jobId = localStorage.getItem('current_job_id');
+    if (!jobId) {
+      console.error('No job ID found');
+      return;
+    }
 
-        if (next >= 100) {
-          clearInterval(interval);
-          setTimeout(() => onNavigate(AppView.RESULTS), 1200);
+    // Connect to SSE endpoint for real-time progress
+    const eventSource = new EventSource(`/api/progress?jobId=${jobId}`);
+
+    eventSource.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+      
+      setProgress(data.progress);
+      setCurrentStepName(data.currentStep);
+      
+      // Find matching step by progress range
+      const step = steps.find(s => data.progress >= s.range[0] && data.progress <= s.range[1]) || steps[steps.length - 1];
+      
+      if (step.id !== activeStepId) {
+        setActiveStepId(step.id);
+        setLogs(prevLogs => [
+          { timestamp: new Date().toLocaleTimeString(), message: `Switching to ${step.label}`, type: 'info' },
+          ...prevLogs.slice(0, 20) // Keep only last 20 logs
+        ]);
+      }
+      
+      // Add log for reference processing
+      if (data.processedReferences) {
+        setLogs(prevLogs => [
+          { timestamp: new Date().toLocaleTimeString(), message: `Processing reference ${data.processedReferences}/${data.totalReferences}`, type: 'info' },
+          ...prevLogs.slice(0, 20)
+        ]);
+      }
+
+      // Navigate to results when completed
+      if (data.status === 'completed' && data.progress >= 100) {
+        setTimeout(() => {
+          eventSource.close();
+          onNavigate(AppView.RESULTS);
+        }, 1200);
+      }
+    };
+
+    eventSource.onerror = (error) => {
+      console.error('SSE error:', error);
+      eventSource.close();
+      
+      // Fallback: Poll for status
+      const pollInterval = setInterval(async () => {
+        try {
+          const response = await fetch(`/api/results?jobId=${jobId}`);
+          const data = await response.json();
+          
+          if (data.status === 'completed') {
+            clearInterval(pollInterval);
+            onNavigate(AppView.RESULTS);
+          }
+        } catch (err) {
+          console.error('Polling error:', err);
         }
-        return next;
-      });
-    }, 150);
-    return () => clearInterval(interval);
+      }, 1000);
+      
+      return () => clearInterval(pollInterval);
+    };
+
+    return () => {
+      eventSource.close();
+    };
   }, [onNavigate, activeStepId]);
 
   return (
@@ -89,8 +137,8 @@ const DashboardProgress: React.FC<DashboardProgressProps> = ({ onNavigate }) => 
               <div className="flex justify-between items-end">
                 <div className="space-y-1">
                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Active Step {activeStepId}/{steps.length}</span>
-                   <p className="text-2xl font-black text-slate-900">{steps[activeStepId-1].label}</p>
-                   <p className="text-sm text-slate-500 font-medium">{steps[activeStepId-1].desc}</p>
+                   <p className="text-2xl font-black text-slate-900">{currentStepName}</p>
+                   <p className="text-sm text-slate-500 font-medium">{steps[activeStepId-1]?.desc || 'Processing...'}</p>
                 </div>
                 <div className="text-right">
                   <span className="text-6xl font-black text-primary tracking-tighter">{Math.floor(progress)}%</span>
