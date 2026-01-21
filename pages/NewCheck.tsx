@@ -23,36 +23,35 @@ const NewCheck: React.FC<NewCheckProps> = ({ onNavigate }) => {
 
   const runValidation = (file: File) => {
     setShowValidation(true);
-    const steps: ValidationStep[] = [
+    const initialSteps: ValidationStep[] = [
       { label: 'File type check', status: 'pending' },
       { label: 'File size verification', status: 'pending' },
       { label: 'Readable structure detection', status: 'pending' },
       { label: 'Password protection check', status: 'pending' },
       { label: 'Text extractability', status: 'pending' },
     ];
-    setValidationSteps(steps);
+    setValidationSteps(initialSteps);
 
-    // Simulate validation sequence
-    let current = 0;
+    let currentStep = 0;
     const interval = setInterval(() => {
       setValidationSteps(prev => {
         const next = [...prev];
-        if (current === 0) {
-          const isSupported = ['.bib', '.pdf', '.docx', '.tex', '.zip'].some(ext => file.name.endsWith(ext));
-          next[current].status = isSupported ? 'success' : 'error';
-          if (!isSupported) next[current].message = 'Unsupported file type';
-        } else if (current === 1) {
-          const isWithinLimit = file.size <= 50 * 1024 * 1024;
-          next[current].status = isWithinLimit ? 'success' : 'error';
-          if (!isWithinLimit) next[current].message = 'File size exceeds 50MB limit';
+        if (currentStep === 0) {
+          const supported = ['.bib', '.pdf', '.docx', '.tex', '.zip'].some(ext => file.name.toLowerCase().endsWith(ext));
+          next[currentStep].status = supported ? 'success' : 'error';
+          if (!supported) next[currentStep].message = 'Unsupported format';
+        } else if (currentStep === 1) {
+          const isOk = file.size <= 50 * 1024 * 1024;
+          next[currentStep].status = isOk ? 'success' : 'error';
+          if (!isOk) next[currentStep].message = 'Exceeds 50MB';
         } else {
-          next[current].status = 'success';
+          next[currentStep].status = 'success';
         }
         return next;
       });
       
-      current++;
-      if (current >= steps.length) {
+      currentStep++;
+      if (currentStep >= initialSteps.length) {
         clearInterval(interval);
       }
     }, 400);
@@ -60,19 +59,15 @@ const NewCheck: React.FC<NewCheckProps> = ({ onNavigate }) => {
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      runValidation(file);
-    }
+    if (file) runValidation(file);
   };
 
-  const handleStartAnalysis = () => {
+  const handleContinue = () => {
     setIsUploading(true);
-    setTimeout(() => {
-      onNavigate(AppView.PROGRESS);
-    }, 500);
+    setTimeout(() => onNavigate(AppView.PROGRESS), 800);
   };
 
-  const isAllValid = validationSteps.length > 0 && validationSteps.every(s => s.status === 'success');
+  const allValid = validationSteps.length > 0 && validationSteps.every(s => s.status === 'success');
 
   return (
     <div className="flex-1 max-w-7xl w-full mx-auto px-6 py-10 lg:py-16 relative">
@@ -80,7 +75,7 @@ const NewCheck: React.FC<NewCheckProps> = ({ onNavigate }) => {
         <div className="lg:col-span-8 flex flex-col gap-10">
           <div>
             <h1 className="text-4xl font-black text-slate-900 tracking-tight">New Bibliography Audit</h1>
-            <p className="text-slate-500 font-medium text-lg mt-2 max-w-xl">Upload your research references to secure metadata integrity and detect retracted works.</p>
+            <p className="text-slate-500 font-medium text-lg mt-2 max-w-xl">Verify your research references to secure metadata integrity and detect retracted works.</p>
           </div>
 
           <div className="flex p-1.5 bg-slate-100 rounded-2xl w-fit border border-border-light shadow-inner">
@@ -105,7 +100,7 @@ const NewCheck: React.FC<NewCheckProps> = ({ onNavigate }) => {
                 type="file" 
                 onChange={handleFileUpload}
                 className="absolute inset-0 opacity-0 cursor-pointer z-10" 
-                accept=".bib,.ris,.pdf,.docx,.tex"
+                accept=".bib,.pdf,.docx,.tex"
               />
               <div className="size-24 rounded-3xl bg-blue-50 text-primary flex items-center justify-center group-hover:rotate-12 group-hover:scale-110 transition-all duration-500">
                 <span className="material-symbols-outlined text-[48px]">upload_file</span>
@@ -167,41 +162,22 @@ const NewCheck: React.FC<NewCheckProps> = ({ onNavigate }) => {
                    ))}
                  </div>
               </div>
-
-              <div className="space-y-4 pt-4 border-t border-border-light">
-                 <div className="flex items-center justify-between group cursor-pointer">
-                    <div className="flex flex-col">
-                      <span className="text-xs font-bold text-slate-900 group-hover:text-primary transition-colors">Registry Deep Search</span>
-                      <span className="text-[9px] text-slate-400 uppercase tracking-widest font-black">Sync with OpenAlex</span>
-                    </div>
-                    <div className="w-10 h-5 bg-primary rounded-full relative shadow-inner"><div className="absolute right-1 top-1 size-3 bg-white rounded-full"></div></div>
-                 </div>
-                 <div className="flex items-center justify-between group cursor-pointer">
-                    <div className="flex flex-col">
-                      <span className="text-xs font-bold text-slate-900 group-hover:text-primary transition-colors">Gemini AI Audit</span>
-                      <span className="text-[9px] text-slate-400 uppercase tracking-widest font-black">Expert Remediation</span>
-                    </div>
-                    <div className="w-10 h-5 bg-primary rounded-full relative shadow-inner"><div className="absolute right-1 top-1 size-3 bg-white rounded-full"></div></div>
-                 </div>
-              </div>
            </div>
         </div>
       </div>
 
-      {/* Validation Modal */}
       {showValidation && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
           <div className="w-full max-w-md bg-white rounded-[2.5rem] shadow-2xl overflow-hidden animate-scale-up">
             <div className="px-10 py-8 border-b border-border-light flex items-center justify-between bg-slate-50">
               <h3 className="text-xl font-black text-slate-900 flex items-center gap-3">
                 <span className="material-symbols-outlined text-primary">description</span>
-                Validating File...
+                📄 Validating File...
               </h3>
               <button onClick={() => setShowValidation(false)} className="text-slate-400 hover:text-slate-900 transition-colors">
                 <span className="material-symbols-outlined">close</span>
               </button>
             </div>
-            
             <div className="p-10 space-y-6">
               <div className="space-y-4">
                 {validationSteps.map((step, idx) => (
@@ -220,27 +196,16 @@ const NewCheck: React.FC<NewCheckProps> = ({ onNavigate }) => {
                   </div>
                 ))}
               </div>
-
-              {isAllValid && (
+              {allValid && (
                 <div className="bg-green-50 rounded-2xl p-5 border border-green-100 flex items-center gap-4 animate-fade-in">
                   <span className="material-symbols-outlined text-success">task</span>
-                  <p className="text-sm font-bold text-success">Ready to analyze 127 references</p>
+                  <p className="text-sm font-bold text-success">Ready to analyze 127 pages</p>
                 </div>
               )}
-
               <div className="pt-4 grid grid-cols-2 gap-4">
-                <button 
-                  onClick={() => setShowValidation(false)}
-                  className="h-14 rounded-xl border border-border-light text-slate-500 font-bold hover:bg-slate-50 transition-all"
-                >
-                  Cancel
-                </button>
-                <button 
-                  disabled={!isAllValid || isUploading}
-                  onClick={handleStartAnalysis}
-                  className="h-14 rounded-xl bg-primary text-white font-black shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50"
-                >
-                  {isUploading ? 'Booting Engine...' : 'Continue to Analysis'}
+                <button onClick={() => setShowValidation(false)} className="h-14 rounded-xl border border-border-light text-slate-500 font-bold hover:bg-slate-50">Cancel</button>
+                <button disabled={!allValid || isUploading} onClick={handleContinue} className="h-14 rounded-xl bg-primary text-white font-black shadow-xl disabled:opacity-50">
+                  {isUploading ? 'Preparing...' : 'Continue to Analysis'}
                 </button>
               </div>
             </div>

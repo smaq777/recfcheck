@@ -38,45 +38,43 @@ export async function sendEmail(to: string, subject: string, html: string) {
 
 /**
  * Verifies a single reference against OpenAlex API
- * Implements better title normalization and proximity matching for years
  */
 export async function verifyWithOpenAlex(ref: Reference): Promise<Partial<Reference>> {
   try {
-    // Search by title is most effective for general bib entries
+    if (!ref || !ref.title) return { status: 'not_found', confidence: 0 };
+
     const query = encodeURIComponent(ref.title.trim());
     const url = `https://api.openalex.org/works?search=${query}&api_key=${OPENALEX_API_KEY}&mailto=verify@refcheck.ai`;
     
     const response = await fetch(url);
-    if (!response.ok) throw new Error(`Registry unavailable: ${response.status}`);
+    if (!response.ok) throw new Error(`Registry error: ${response.status}`);
     
     const data = await response.json();
 
     if (data.results && data.results.length > 0) {
-      // Find the most likely candidate (first one is usually best for specific title searches)
       const bestMatch = data.results[0];
       const canonicalTitle = bestMatch.display_name;
       const canonicalYear = bestMatch.publication_year;
       const doi = bestMatch.doi;
       const venue = bestMatch.primary_location?.source?.display_name || "Unknown Venue";
       
-      // Advanced normalization for matching
       const cleanInput = ref.title.toLowerCase().replace(/[^a-z0-9]/g, '');
       const cleanFound = canonicalTitle.toLowerCase().replace(/[^a-z0-9]/g, '');
       
-      // Calculate a simple match score
       const titleScore = cleanFound.includes(cleanInput) || cleanInput.includes(cleanFound) ? 1.0 : 0.6;
       const yearScore = Math.abs(canonicalYear - ref.year) === 0 ? 1.0 : Math.abs(canonicalYear - ref.year) <= 1 ? 0.8 : 0.3;
       const finalConfidence = Math.round(((titleScore * 0.7) + (yearScore * 0.3)) * 100);
 
       const issues: string[] = [];
-      if (titleScore < 1) issues.push("Subtle Title Difference");
-      if (yearScore < 1) issues.push("Year Discrepancy");
-      if (!ref.doi && doi) issues.push("Registry DOI Available");
-      if (bestMatch.is_retracted) issues.push("RETRACTED WORK");
+      if (titleScore < 1) issues.push("TITLE MISMATCH");
+      if (yearScore < 1) issues.push("YEAR DISCREPANCY");
+      if (!ref.doi && doi) issues.push("ADD DOI");
+      if (!ref.source && venue) issues.push("ADD VENUE");
+      if (bestMatch.is_retracted) issues.push("RETRACTED PAPER");
 
       return {
-        status: bestMatch.is_retracted ? 'retracted' : (issues.length === 0 ? 'verified' : issues.length > 2 ? 'issue' : 'warning'),
-        issues,
+        status: bestMatch.is_retracted ? 'retracted' : (issues.length === 0 ? 'verified' : (issues.length >= 2 || titleScore < 0.7) ? 'issue' : 'warning'),
+        issues: issues,
         confidence: finalConfidence,
         canonicalTitle,
         canonicalYear,
@@ -85,10 +83,10 @@ export async function verifyWithOpenAlex(ref: Reference): Promise<Partial<Refere
       };
     }
     
-    return { status: 'warning', issues: ['No Registry Match'], confidence: 0 };
+    return { status: 'not_found', issues: ['NOT FOUND'], confidence: 0 };
   } catch (error) {
     console.error("Verification Error:", error);
-    return { status: 'warning', issues: ['Lookup Failed'], confidence: 0 };
+    return { status: 'warning', issues: ['NEEDS REVIEW'], confidence: 0 };
   }
 }
 
@@ -99,18 +97,18 @@ export async function getAiVerificationInsight(ref: Reference): Promise<string> 
   try {
     const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
-      contents: `Audit Analysis:
-      Target Paper: "${ref.title}" (${ref.year})
-      Registry Match: "${ref.canonicalTitle}" (${ref.canonicalYear})
-      Flags: ${ref.issues?.join(', ')}
+      contents: `Reference Audit Analysis:
+      Target: "${ref.title}" (${ref.year})
+      Registry Match: "${ref.canonicalTitle || 'None'}" (${ref.canonicalYear || 'N/A'})
+      Current Issues: ${ref.issues?.join(', ') || 'None'}
       
-      Instructions: Provide a professional, 2-sentence diagnostic. Be specific about whether this is a minor naming convention issue or a serious citation error. If it is retracted, state it clearly.`,
+      Provide a 2-sentence expert diagnostic of the metadata quality. Be concise and professional. Use formatting to highlight critical risks.`,
       config: {
         thinkingConfig: { thinkingBudget: 0 }
       }
     });
-    return response.text || "Discrepancy detected. Manual validation against the DOI landing page is recommended.";
+    return response.text || "Manual review recommended. Title or publication year differs from registry record.";
   } catch (error) {
-    return "AI Insight service temporarily at capacity. Please review the year and title for common typos.";
+    return "AI analysis engine is temporarily busy. Discrepancy detected between your source and the registry.";
   }
 }
