@@ -1,0 +1,63 @@
+
+<!DOCTYPE html>
+<html lang="en" class="light">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RefCheck - Academic Bibliography Verification</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200..800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
+    <script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#2c346d",
+                        "primary-hover": "#3d4885",
+                        "background-light": "#f8fafb",
+                        "background-dark": "#111218",
+                        "surface-light": "#ffffff",
+                        "surface-dark": "#1c1e2d",
+                        "border-light": "#eaebf0",
+                        "border-dark": "#2e354f",
+                        "success": "#28a745",
+                        "error": "#dc3545",
+                        "warning": "#ffc107"
+                    },
+                    fontFamily: {
+                        "display": ["Manrope", "sans-serif"],
+                        "mono": ["JetBrains Mono", "monospace"]
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @keyframes subtle-pulse {
+            0% { box-shadow: 0 0 0 0 rgba(44, 52, 109, 0.4); }
+            70% { box-shadow: 0 0 0 6px rgba(44, 52, 109, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(44, 52, 109, 0); }
+        }
+        .active-pulse {
+            animation: subtle-pulse 2s infinite;
+        }
+    </style>
+<script type="importmap">
+{
+  "imports": {
+    "@google/genai": "https://esm.sh/@google/genai@^1.38.0",
+    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
+    "react/": "https://esm.sh/react@^19.2.3/",
+    "react": "https://esm.sh/react@^19.2.3"
+  }
+}
+</script>
+</head>
+<body class="bg-background-light text-[#111218] font-display antialiased">
+    <div id="root"></div>
+</body>
+</html>
