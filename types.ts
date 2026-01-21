@@ -36,6 +36,8 @@ export interface UserProfile {
   };
 }
 
+export type ReferenceStatus = 'verified' | 'issue' | 'warning' | 'retracted' | 'duplicate' | 'not_found';
+
 export interface Reference {
   id: string;
   key: string;
@@ -43,13 +45,15 @@ export interface Reference {
   authors: string;
   year: number;
   source: string;
-  status: 'verified' | 'issue' | 'warning' | 'retracted';
+  status: ReferenceStatus;
   issues?: string[];
   confidence: number;
   doi?: string;
   canonicalTitle?: string;
   canonicalYear?: number;
   venue?: string;
+  abstract?: string;
+  isDuplicate?: boolean;
 }
 
 export interface VerificationJob {
