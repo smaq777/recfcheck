@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Reference Detail &amp; Fix Drawer</title>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#2c346d",
+                        "background-light": "#ffffff",
+                        "background-dark": "#191d2e",
+                        "surface-light": "#f8fafb",
+                        "surface-dark": "#23283d",
+                    },
+                    fontFamily: {
+                        "display": ["Manrope", "sans-serif"],
+                        "mono": ["JetBrains Mono", "monospace"],
+                    },
+                    borderRadius: { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px" },
+                },
+            },
+        }
+    </script>
+<style>
+        /* Custom scrollbar for the drawer content */
+        .drawer-content::-webkit-scrollbar {
+            width: 6px;
+        }
+        .drawer-content::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .drawer-content::-webkit-scrollbar-thumb {
+            background-color: #cbd5e1;
+            border-radius: 20px;
+        }
+        .dark .drawer-content::-webkit-scrollbar-thumb {
+            background-color: #475569;
+        }
+    </style>
+</head>
+<body class="bg-slate-100 dark:bg-[#0f111a] font-display overflow-hidden h-screen w-full flex justify-end">
+<!-- Mock Background Content (To simulate the app behind the drawer) -->
+<div class="absolute inset-0 p-8 opacity-20 pointer-events-none select-none flex flex-col gap-4">
+<div class="h-16 w-full bg-slate-300 dark:bg-slate-700 rounded-lg"></div>
+<div class="flex gap-4 h-full">
+<div class="w-1/4 h-full bg-slate-300 dark:bg-slate-700 rounded-lg"></div>
+<div class="w-3/4 h-full flex flex-col gap-4">
+<div class="h-32 w-full bg-slate-300 dark:bg-slate-700 rounded-lg"></div>
+<div class="h-32 w-full bg-slate-300 dark:bg-slate-700 rounded-lg"></div>
+<div class="h-32 w-full bg-slate-300 dark:bg-slate-700 rounded-lg"></div>
+</div>
+</div>
+</div>
+<!-- Drawer Container -->
+<div class="relative w-full max-w-[800px] h-full flex flex-col bg-background-light dark:bg-background-dark shadow-2xl border-l border-slate-200 dark:border-slate-800 animate-slide-in">
+<!-- Header -->
+<div class="px-8 pt-8 pb-4 shrink-0 flex flex-col gap-6">
+<!-- Top Controls -->
+<div class="flex justify-between items-start">
+<div class="flex gap-5 items-start">
+<div class="flex items-center justify-center shrink-0 w-16 h-16 rounded-full bg-red-50 dark:bg-red-900/20 text-[#DC3545] dark:text-red-400">
+<span class="material-symbols-outlined text-[32px] font-bold">close</span>
+</div>
+<div class="flex flex-col pt-1">
+<h2 class="text-slate-900 dark:text-white text-2xl font-extrabold leading-tight tracking-tight">Metadata mismatch</h2>
+<p class="text-slate-500 dark:text-slate-400 text-sm font-medium mt-1 font-mono">Reference ID: #wilson2023deep</p>
+</div>
+</div>
+<button class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors">
+<span class="material-symbols-outlined">close</span>
+</button>
+</div>
+<!-- Tabs -->
+<div class="flex gap-8 border-b border-slate-200 dark:border-slate-800">
+<button class="pb-3 text-sm font-semibold text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 transition-colors">Summary</button>
+<button class="pb-3 text-sm font-bold text-primary dark:text-indigo-400 border-b-[3px] border-primary dark:border-indigo-400">Differences</button>
+<button class="pb-3 text-sm font-semibold text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 transition-colors">Suggestions</button>
+<button class="pb-3 text-sm font-semibold text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 transition-colors">History</button>
+</div>
+</div>
+<!-- Scrollable Content -->
+<div class="drawer-content flex-1 overflow-y-auto px-8 py-6 flex flex-col gap-8">
+<!-- Diff Section -->
+<section class="flex flex-col gap-3">
+<div class="flex items-center justify-between">
+<h3 class="text-slate-900 dark:text-white text-lg font-bold">Comparison</h3>
+<span class="text-xs font-medium px-2 py-1 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400">2 Conflicts Found</span>
+</div>
+<div class="border border-slate-200 dark:border-slate-800 rounded-lg overflow-hidden">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="bg-surface-light dark:bg-surface-dark border-b border-slate-200 dark:border-slate-800">
+<th class="py-3 px-4 w-24 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Field</th>
+<th class="py-3 px-4 w-[40%] text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+<div class="flex items-center gap-2">
+<span class="w-2 h-2 rounded-full bg-red-500"></span>
+                                        Your BibTeX
+                                    </div>
+</th>
+<th class="py-3 px-4 w-[40%] text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+<div class="flex items-center gap-2">
+<span class="w-2 h-2 rounded-full bg-green-500"></span>
+                                        Canonical
+                                    </div>
+</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-slate-200 dark:divide-slate-800">
+<!-- Title Row -->
+<tr class="group">
+<td class="py-4 px-4 align-top bg-white dark:bg-background-dark">
+<span class="inline-flex items-center justify-center px-2 py-1 rounded bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-bold uppercase tracking-wider">Title</span>
+</td>
+<td class="py-4 px-4 align-top bg-red-50/50 dark:bg-red-900/10 text-red-700 dark:text-red-300 font-mono text-sm leading-relaxed">
+                                    Deep learning for graphs
+                                </td>
+<td class="py-4 px-4 align-top bg-green-50/50 dark:bg-green-900/10 text-green-700 dark:text-green-300 font-mono text-sm leading-relaxed">
+                                    Deep Learning for Graphs: A Survey
+                                </td>
+</tr>
+<!-- Year Row -->
+<tr class="group">
+<td class="py-4 px-4 align-top bg-white dark:bg-background-dark">
+<span class="inline-flex items-center justify-center px-2 py-1 rounded bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-bold uppercase tracking-wider">Year</span>
+</td>
+<td class="py-4 px-4 align-top bg-red-50/50 dark:bg-red-900/10 text-red-700 dark:text-red-300 font-mono text-sm leading-relaxed">
+                                    2022
+                                </td>
+<td class="py-4 px-4 align-top bg-green-50/50 dark:bg-green-900/10 text-green-700 dark:text-green-300 font-mono text-sm leading-relaxed">
+                                    2023
+                                </td>
+</tr>
+<!-- Author Row (Match - No highlight) -->
+<tr class="group">
+<td class="py-4 px-4 align-top bg-white dark:bg-background-dark">
+<span class="inline-flex items-center justify-center px-2 py-1 rounded bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 text-xs font-bold uppercase tracking-wider">Author</span>
+</td>
+<td class="py-4 px-4 align-top text-slate-500 dark:text-slate-400 font-mono text-sm leading-relaxed">
+                                    Wu, Zonghan et al.
+                                </td>
+<td class="py-4 px-4 align-top text-slate-500 dark:text-slate-400 font-mono text-sm leading-relaxed">
+                                    Wu, Zonghan et al.
+                                </td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<!-- Quick Fixes Section -->
+<section class="flex flex-col gap-4 pb-20">
+<h3 class="text-slate-900 dark:text-white text-lg font-bold pt-4">Quick Fixes</h3>
+<div class="grid gap-3">
+<!-- Fix Card 1 -->
+<div class="flex items-center justify-between p-4 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-surface-dark hover:border-indigo-200 dark:hover:border-indigo-900 transition-colors group">
+<div class="flex items-start gap-4">
+<div class="flex items-center justify-center w-10 h-10 rounded-full bg-indigo-50 dark:bg-indigo-900/30 text-primary dark:text-indigo-400 shrink-0">
+<span class="material-symbols-outlined text-[20px]">link</span>
+</div>
+<div>
+<p class="text-slate-900 dark:text-white font-semibold text-sm">Add missing DOI</p>
+<p class="text-slate-500 dark:text-slate-400 text-xs font-mono mt-0.5">10.1109/TKDE.2022.3150000</p>
+</div>
+</div>
+<button class="px-4 py-2 rounded-md bg-indigo-50 dark:bg-indigo-900/30 text-primary dark:text-indigo-300 text-sm font-semibold hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-colors">
+                            Apply
+                        </button>
+</div>
+<!-- Fix Card 2 -->
+<div class="flex items-center justify-between p-4 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-surface-dark hover:border-indigo-200 dark:hover:border-indigo-900 transition-colors group">
+<div class="flex items-start gap-4">
+<div class="flex items-center justify-center w-10 h-10 rounded-full bg-indigo-50 dark:bg-indigo-900/30 text-primary dark:text-indigo-400 shrink-0">
+<span class="material-symbols-outlined text-[20px]">group</span>
+</div>
+<div>
+<p class="text-slate-900 dark:text-white font-semibold text-sm">Normalize Author Names</p>
+<p class="text-slate-500 dark:text-slate-400 text-xs mt-0.5">Format to "Lastname, Firstname"</p>
+</div>
+</div>
+<button class="px-4 py-2 rounded-md bg-indigo-50 dark:bg-indigo-900/30 text-primary dark:text-indigo-300 text-sm font-semibold hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-colors">
+                            Apply
+                        </button>
+</div>
+</div>
+</section>
+</div>
+<!-- Sticky Footer -->
+<div class="p-6 border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-background-dark z-10 shrink-0 flex items-center justify-between gap-4">
+<button class="px-6 py-3 rounded-lg text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white text-sm font-bold transition-colors">
+                Ignore Warning
+             </button>
+<button class="flex-1 px-6 py-3 rounded-lg bg-primary hover:bg-indigo-900 text-white text-sm font-bold shadow-lg shadow-indigo-900/20 transition-all flex justify-center items-center gap-2">
+<span class="material-symbols-outlined text-[18px]">check</span>
+                Update Reference
+             </button>
+</div>
+</div>
+</body></html>

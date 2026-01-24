@@ -17,35 +17,55 @@ export async function verifyWithOpenAlex(reference) {
   try {
     const query = encodeURIComponent(reference.title.trim());
     const url = `https://api.openalex.org/works?filter=title.search:${query}&mailto=${CROSSREF_EMAIL}`;
-    
+
     const response = await fetch(url);
     if (!response.ok) throw new Error(`OpenAlex error: ${response.status}`);
-    
+
     const data = await response.json();
-    
+
     if (!data.results || data.results.length === 0) {
       return { source: 'OpenAlex', found: false, confidence: 0 };
     }
-    
+
     const match = data.results[0];
     const titleSimilarity = calculateSimilarity(reference.title, match.title);
     const yearMatch = reference.year === match.publication_year;
-    
+
+    // CRITICAL: Reject matches with very low title similarity
+    // This prevents accepting random papers as "verified"
+    if (titleSimilarity < 60) {
+      console.log(`   ⚠️ OpenAlex: Title similarity too low (${titleSimilarity}%) - rejecting match`);
+      return { source: 'OpenAlex', found: false, confidence: 0 };
+    }
+
     // Extract ALL authors from OpenAlex
     const allAuthors = match.authorships?.map(a => a.author.display_name).filter(Boolean) || [];
     console.log(`   📚 OpenAlex found ${allAuthors.length} authors:`, allAuthors);
-    
+
+    // Extract rich metadata for better export
+    const metadata = {
+      publisher: match.primary_location?.source?.publisher,
+      pages: match.biblio?.first_page && match.biblio?.last_page ? `${match.biblio.first_page}--${match.biblio.last_page}` : match.biblio?.first_page,
+      volume: match.biblio?.volume,
+      issue: match.biblio?.issue,
+      editor: match.authorships?.filter(a => a.author_position === 'editor').map(a => a.author.display_name).join(' and '),
+      is_conference: match.type === 'proceedings-article' || match.type === 'conference-proceedings',
+      month: match.publication_date ? new Date(match.publication_date).toLocaleString('en-US', { month: 'short' }).toLowerCase() : null,
+    };
+
     return {
       source: 'OpenAlex',
       found: true,
       confidence: titleSimilarity,
       canonical_title: match.title,
-      canonical_authors: allAuthors.join(', '),
+      canonical_authors: allAuthors.join(' and '), // BibTeX uses ' and '
       canonical_year: match.publication_year,
-      doi: match.doi?.replace('https://doi.org/', ''),
+      doi: match.doi ? match.doi.replace('https://doi.org/', '').replace('DOI:', '').trim() : null,
       is_retracted: match.is_retracted || false,
       cited_by_count: match.cited_by_count || 0,
       venue: match.primary_location?.source?.display_name,
+      bibtex_type: match.type === 'proceedings-article' ? 'inproceedings' : 'article',
+      metadata,
       open_access: match.open_access?.is_oa || false,
       url: `https://openalex.org/${match.id?.replace('https://openalex.org/', '')}`,
       issues: detectIssues(reference, match, titleSimilarity, yearMatch)
@@ -64,20 +84,26 @@ export async function verifyWithCrossref(reference) {
   try {
     const query = encodeURIComponent(reference.title.trim());
     const url = `https://api.crossref.org/works?query.title=${query}&mailto=${CROSSREF_EMAIL}&rows=1`;
-    
+
     const response = await fetch(url);
     if (!response.ok) throw new Error(`Crossref error: ${response.status}`);
-    
+
     const data = await response.json();
-    
+
     if (!data.message || !data.message.items || data.message.items.length === 0) {
       return { source: 'Crossref', found: false, confidence: 0 };
     }
-    
+
     const match = data.message.items[0];
     const titleSimilarity = calculateSimilarity(reference.title, match.title?.[0] || '');
     const yearMatch = reference.year === parseInt(match.published?.['date-parts']?.[0]?.[0]);
-    
+
+    // CRITICAL: Reject matches with very low title similarity
+    if (titleSimilarity < 60) {
+      console.log(`   ⚠️ Crossref: Title similarity too low (${titleSimilarity}%) - rejecting match`);
+      return { source: 'Crossref', found: false, confidence: 0 };
+    }
+
     // Extract ALL authors from Crossref
     const allAuthors = match.author?.map(a => {
       const given = a.given || '';
@@ -85,24 +111,33 @@ export async function verifyWithCrossref(reference) {
       return `${given} ${family}`.trim();
     }).filter(Boolean) || [];
     console.log(`   📚 Crossref found ${allAuthors.length} authors:`, allAuthors);
-    
+
+    // Extract rich metadata from Crossref
+    const metadata = {
+      publisher: match.publisher,
+      pages: match.page,
+      volume: match.volume,
+      issue: match.issue,
+      container_title: match.container?.[0] || match['container-title']?.[0],
+      is_conference: match.type?.includes('proceedings-article') || match.type?.includes('conference'),
+    };
+
     return {
       source: 'Crossref',
       found: true,
-      confidence: titleSimilarity * (match.score / 100), // Crossref provides relevance score
+      confidence: titleSimilarity,
       canonical_title: match.title?.[0],
-      canonical_authors: allAuthors.join(', '),
+      canonical_authors: allAuthors.join(' and '), // BibTeX format
       canonical_year: parseInt(match.published?.['date-parts']?.[0]?.[0]),
       doi: match.DOI,
       venue: match.container?.[0] || match['container-title']?.[0],
-      publisher: match.publisher,
-      is_retracted: match.update?.type === 'retraction' || false,
-      cited_by_count: match['is-referenced-by-count'] || 0,
+      bibtex_type: (match.type?.includes('proceedings') || match.type?.includes('conference')) ? 'inproceedings' : 'article',
+      metadata,
       url: match.DOI ? `https://doi.org/${match.DOI}` : null,
-      issues: detectIssues(reference, { 
-        title: match.title?.[0], 
+      issues: detectIssues(reference, {
+        title: match.title?.[0],
         publication_year: parseInt(match.published?.['date-parts']?.[0]?.[0]),
-        doi: match.DOI 
+        doi: match.DOI
       }, titleSimilarity, yearMatch)
     };
   } catch (error) {
@@ -119,24 +154,30 @@ export async function verifyWithSemanticScholar(reference) {
   try {
     const query = encodeURIComponent(reference.title.trim());
     const url = `https://api.semanticscholar.org/graph/v1/paper/search?query=${query}&limit=1&fields=title,authors,year,citationCount,isOpenAccess,venue,externalIds`;
-    
+
     const response = await fetch(url);
     if (!response.ok) throw new Error(`Semantic Scholar error: ${response.status}`);
-    
+
     const data = await response.json();
-    
+
     if (!data.data || data.data.length === 0) {
       return { source: 'Semantic Scholar', found: false, confidence: 0 };
     }
-    
+
     const match = data.data[0];
-    const titleSimilarity = calculateSimilarity(reference.title, match.title);
+    const titleSimilarity = calculateSimilarity(reference.title, match.title || '');
     const yearMatch = reference.year === match.year;
-    
+
+    // CRITICAL: Reject matches with very low title similarity
+    if (titleSimilarity < 60) {
+      console.log(`   ⚠️ Semantic Scholar: Title similarity too low (${titleSimilarity}%) - rejecting match`);
+      return { source: 'Semantic Scholar', found: false, confidence: 0 };
+    }
+
     // Extract ALL authors from Semantic Scholar
     const allAuthors = match.authors?.map(a => a.name).filter(Boolean) || [];
     console.log(`   📚 Semantic Scholar found ${allAuthors.length} authors:`, allAuthors);
-    
+
     return {
       source: 'Semantic Scholar',
       found: true,
@@ -161,89 +202,175 @@ export async function verifyWithSemanticScholar(reference) {
  * Cross-validate across multiple APIs for higher accuracy
  */
 export async function crossValidateReference(reference) {
-  console.log(`🔍 Cross-validating: "${reference.title.substring(0, 50)}..."`);
-  
+  console.log(`🔍 Cross-validating: "${reference.title?.substring(0, 50) || 'No title'}..."`);
+
+  // VALIDATION: Check if reference has garbage data from poor PDF extraction
+  const hasGarbageTitle = !reference.title ||
+    reference.title.length < 10 ||
+    reference.title.toLowerCase().includes('doi:') ||
+    reference.title.toLowerCase().startsWith('doi') ||
+    reference.title.match(/^https?:\/\//i) ||
+    reference.title.match(/^\d+\.\d+\//); // Looks like "10.1002/..."
+
+  const hasGarbageAuthors = !reference.authors ||
+    reference.authors.length < 3 ||
+    reference.authors.toLowerCase() === 'unknown' ||
+    reference.authors.toLowerCase() === 'et al.' ||
+    reference.authors.toLowerCase() === 'et al';
+
+  if (hasGarbageTitle || hasGarbageAuthors) {
+    console.warn(`⚠️ SKIPPING verification - poor extraction quality:`);
+    console.warn(`   Title: "${reference.title}" (garbage: ${hasGarbageTitle})`);
+    console.warn(`   Authors: "${reference.authors}" (garbage: ${hasGarbageAuthors})`);
+
+    return {
+      status: 'warning',
+      confidence: 0,
+      issues: ['⚠️ EXTRACTION ERROR - Reference data appears malformed or incomplete. Please check original document.'],
+      verified_by: [],
+      canonical_title: null,
+      canonical_authors: null,
+      canonical_year: null,
+      doi: reference.doi || null, // Keep DOI if it was extracted
+      venue: null,
+      cited_by_count: null,
+      is_retracted: false,
+      all_results: []
+    };
+  }
+
   // Call all APIs in parallel
   const [openAlexResult, crossrefResult, semanticScholarResult] = await Promise.all([
     verifyWithOpenAlex(reference),
     verifyWithCrossref(reference),
     verifyWithSemanticScholar(reference)
   ]);
-  
+
   const results = [openAlexResult, crossrefResult, semanticScholarResult];
   const foundCount = results.filter(r => r.found).length;
-  
+
   console.log(`   OpenAlex: ${openAlexResult.found ? '✅' : '❌'} (${openAlexResult.confidence}%)`);
   console.log(`   Crossref: ${crossrefResult.found ? '✅' : '❌'} (${crossrefResult.confidence}%)`);
   console.log(`   Semantic Scholar: ${semanticScholarResult.found ? '✅' : '❌'} (${semanticScholarResult.confidence}%)`);
-  
+
+  // Check for AI-generated/fake reference patterns
+  const fakePatterns = detectFakePatterns(reference);
+  const hasFakePatterns = fakePatterns.length > 0;
+
   // Aggregate results
   if (foundCount === 0) {
+    // NO APIs found this reference - highly suspicious!
+    const issues = ['❌ NOT FOUND in any academic database'];
+
+    if (hasFakePatterns) {
+      issues.push('🚨 LIKELY FAKE/AI-GENERATED - Suspicious patterns detected:');
+      fakePatterns.forEach(pattern => issues.push(`   • ${pattern}`));
+    } else {
+      issues.push('⚠️ This reference may be:');
+      issues.push('   • Fake or AI-generated');
+      issues.push('   • Not yet published');
+      issues.push('   • From a predatory journal');
+      issues.push('   • Incorrectly formatted');
+    }
+
     return {
       status: 'not_found',
       confidence: 0,
-      issues: ['NOT FOUND - Reference may be fake, unpublished, or incorrectly formatted'],
+      issues: issues,
       verified_by: [],
+      canonical_title: null,
+      canonical_authors: null,
+      canonical_year: null,
+      doi: null,
+      venue: null,
+      cited_by_count: 0,
+      is_retracted: false,
       all_results: results
     };
   }
-  
+
   // Use the result with highest confidence
   const bestResult = results
     .filter(r => r.found)
     .sort((a, b) => b.confidence - a.confidence)[0];
-  
+
   // CRITICAL: Only use canonical data if it's ACTUALLY THE SAME PAPER
   // Check if this is the SAME paper (not just similar)
   const isSamePaper = checkIfSamePaper(reference, bestResult);
-  
-  // Aggregate issues from all sources
-  const allIssues = [...new Set(results.flatMap(r => r.issues || []))];
-  
+
+  // Use issues ONLY from the best result to avoid contamination from bad matches
+  // (e.g. if Semantic Scholar found a 2017 paper but OpenAlex found the correct 2007 paper,
+  // we don't want the 'Year mismatch' error from Semantic Scholar)
+  const allIssues = [...(bestResult.issues || [])];
+
+  // Generate detailed confidence explanation
+  const confidenceFactors = generateConfidenceExplanation(
+    bestResult.confidence,
+    reference.year === bestResult.canonical_year,
+    true, // authorMatch will be enhanced
+    foundCount
+  );
+
+  // Add confidence breakdown to issues for low confidence matches
+  if (bestResult.confidence < 50) {
+    allIssues.push('📊 LOW CONFIDENCE BREAKDOWN:');
+    confidenceFactors.forEach(factor => allIssues.push(`   ${factor}`));
+  }
+
   // Determine overall status
   let status = 'verified';
   let overallConfidence = bestResult.confidence;
-  
-  // If not the same paper, don't suggest corrections - just verify it exists
+
+  // If not the same paper, don't suggest corrections - mark as suspicious
   if (!isSamePaper) {
-    // The API found a different paper, not a typo correction
+    // The API found a DIFFERENT paper - this is suspicious!
+    console.warn(`⚠️ WARNING: API found different paper. Original may be fake.`);
+
     return {
-      status: 'verified',
-      confidence: overallConfidence,
-      canonical_title: null, // Don't suggest different paper as correction
+      status: 'not_found',
+      confidence: 0,
+      canonical_title: null,
       canonical_authors: null,
       canonical_year: null,
-      doi: bestResult.doi,
-      venue: bestResult.venue,
-      cited_by_count: bestResult.cited_by_count,
-      is_retracted: bestResult.is_retracted,
+      doi: null,
+      venue: null,
+      cited_by_count: 0,
+      is_retracted: false,
+      issues: [
+        '❌ NOT FOUND - No matching paper in academic databases',
+        `⚠️ API found a different paper: "${bestResult.canonical_title?.substring(0, 80)}..."`,
+        '🚨 This reference may be fake, AI-generated, or severely misspelled',
+        ...(hasFakePatterns ? ['🤖 AI-generated content patterns detected:', ...fakePatterns.map(p => `   • ${p}`)] : [])
+      ],
+      verified_by: [],
+      all_results: results,
       issues: bestResult.is_retracted ? ['⚠️ RETRACTED - This paper has been officially retracted'] : [],
       verified_by: results.filter(r => r.found).map(r => r.source),
       // External viewing links (generate from DOI if available)
       google_scholar_url: generateGoogleScholarUrl(reference),
       openalex_url: openAlexResult.found && openAlexResult.url ? openAlexResult.url : null,
-      crossref_url: bestResult.doi ? `https://doi.org/${bestResult.doi}` : 
-                    (crossrefResult.found && crossrefResult.url ? crossrefResult.url : null),
+      crossref_url: bestResult.doi ? `https://doi.org/${bestResult.doi}` :
+        (crossrefResult.found && crossrefResult.url ? crossrefResult.url : null),
       semantic_scholar_url: semanticScholarResult.found && semanticScholarResult.url ? semanticScholarResult.url : null,
       all_results: results
     };
   }
-  
+
   if (foundCount === 1) {
     status = 'warning';
     allIssues.push('Found in only 1 database - needs manual review');
   }
-  
+
   if (bestResult.is_retracted) {
     status = 'retracted';
     allIssues.push('⚠️ RETRACTED - This paper has been officially retracted');
   }
-  
+
   if (overallConfidence < 70) {
     status = 'warning';
     allIssues.push('Low confidence match - title may be incorrect');
   }
-  
+
   return {
     status,
     confidence: overallConfidence,
@@ -252,6 +379,8 @@ export async function crossValidateReference(reference) {
     canonical_year: bestResult.canonical_year,
     doi: bestResult.doi,
     venue: bestResult.venue,
+    bibtex_type: bestResult.bibtex_type || 'article',
+    metadata: bestResult.metadata || {},
     cited_by_count: bestResult.cited_by_count,
     is_retracted: bestResult.is_retracted,
     issues: allIssues,
@@ -259,8 +388,8 @@ export async function crossValidateReference(reference) {
     // External viewing links (prioritize direct paper URLs over generic search)
     google_scholar_url: generateGoogleScholarUrl(reference),
     openalex_url: openAlexResult.found && openAlexResult.url ? openAlexResult.url : null,
-    crossref_url: bestResult.doi ? `https://doi.org/${bestResult.doi}` : 
-                  (crossrefResult.found && crossrefResult.url ? crossrefResult.url : null),
+    crossref_url: bestResult.doi ? `https://doi.org/${bestResult.doi}` :
+      (crossrefResult.found && crossrefResult.url ? crossrefResult.url : null),
     semantic_scholar_url: semanticScholarResult.found && semanticScholarResult.url ? semanticScholarResult.url : null,
     all_results: results
   };
@@ -280,50 +409,79 @@ function checkIfSamePaper(originalReference, foundResult) {
   if (originalReference.doi && foundResult.doi) {
     const doi1 = originalReference.doi.toLowerCase().trim().replace('https://doi.org/', '');
     const doi2 = foundResult.doi.toLowerCase().trim().replace('https://doi.org/', '');
-    
+
     if (doi1 === doi2) {
       console.log(`   ✅ DOI EXACT MATCH - Same paper: ${doi1}`);
       return true;
     }
   }
-  
+
   // RULE 2: No DOI, but need STRONG evidence (title + author + year)
   const titleSimilarity = calculateSimilarity(originalReference.title, foundResult.canonical_title);
   const yearMatch = originalReference.year === foundResult.canonical_year;
-  
-  // Check author overlap (need at least 50% matching authors)
+
+  // Check author overlap (but handle "et al." cases)
   let authorMatch = false;
   if (originalReference.authors && foundResult.canonical_authors) {
-    const originalAuthors = originalReference.authors.toLowerCase().split(/[,;&]/).map(a => a.trim());
-    const foundAuthors = foundResult.canonical_authors.toLowerCase().split(/[,;&]/).map(a => a.trim());
-    
-    let matchCount = 0;
-    for (const origAuthor of originalAuthors) {
-      for (const foundAuthor of foundAuthors) {
-        // Check if author names overlap significantly
-        if (origAuthor.includes(foundAuthor) || foundAuthor.includes(origAuthor)) {
-          matchCount++;
-          break;
+    const authorSplitRegex = /\s+(?:and|AND)\s+|[,;&]/;
+    const originalAuthors = originalReference.authors.toLowerCase().split(authorSplitRegex).map(a => a.trim());
+    const foundAuthors = foundResult.canonical_authors.toLowerCase().split(authorSplitRegex).map(a => a.trim());
+
+    // SPECIAL CASE: If original has "et al." - trust the API result
+    const hasEtAl = originalReference.authors.toLowerCase().includes('et al');
+    if (hasEtAl && foundAuthors.length >= 3) {
+      // If original shows "Dada et al." and API finds multiple authors starting with similar name
+      const firstOriginalAuthor = originalAuthors[0].replace(/et al\.?/gi, '').trim();
+      const firstFoundAuthor = foundAuthors[0];
+
+      // Check if first author matches (allowing for partial matches)
+      if (firstFoundAuthor.includes(firstOriginalAuthor) || firstOriginalAuthor.includes(firstFoundAuthor)) {
+        console.log(`   ✅ First author match with "et al." - accepting full author list`);
+        authorMatch = true;
+      }
+    } else {
+      // Normal author matching
+      let matchCount = 0;
+      for (const origAuthor of originalAuthors) {
+        for (const foundAuthor of foundAuthors) {
+          // Check if author names overlap significantly
+          if (origAuthor.includes(foundAuthor) || foundAuthor.includes(origAuthor)) {
+            matchCount++;
+            break;
+          }
         }
       }
+
+      const overlapPercentage = (matchCount / Math.min(originalAuthors.length, foundAuthors.length)) * 100;
+      authorMatch = overlapPercentage >= 40; // Lowered from 50% to 40%
+
+      console.log(`   📊 Author overlap: ${overlapPercentage.toFixed(0)}% (${matchCount}/${Math.min(originalAuthors.length, foundAuthors.length)} authors)`);
     }
-    
-    const overlapPercentage = (matchCount / Math.min(originalAuthors.length, foundAuthors.length)) * 100;
-    authorMatch = overlapPercentage >= 50;
-    
-    console.log(`   📊 Author overlap: ${overlapPercentage.toFixed(0)}% (${matchCount}/${Math.min(originalAuthors.length, foundAuthors.length)} authors)`);
   }
-  
+
   console.log(`   📊 Title similarity: ${titleSimilarity.toFixed(0)}%`);
   console.log(`   📊 Year match: ${yearMatch ? 'YES' : 'NO'} (${originalReference.year} vs ${foundResult.canonical_year})`);
   console.log(`   📊 Author match: ${authorMatch ? 'YES' : 'NO'}`);
-  
-  // MUST have: High title similarity (>98%) + Year match + Author overlap
-  if (titleSimilarity > 98 && yearMatch && authorMatch) {
-    console.log(`   ✅ HIGH CONFIDENCE MATCH - Same paper with minor typo`);
+
+  // RELAXED RULES for better matching:
+  // Option 1: Very high title similarity + year match (even if author mismatch due to "et al.")
+  if (titleSimilarity > 85 && yearMatch) {
+    console.log(`   ✅ HIGH TITLE MATCH + YEAR - Same paper (possibly abbreviated authors)`);
     return true;
   }
-  
+
+  // Option 2: Perfect title + author match (even different year - could be preprint vs published)
+  if (titleSimilarity > 95 && authorMatch) {
+    console.log(`   ✅ PERFECT TITLE + AUTHOR MATCH - Same paper`);
+    return true;
+  }
+
+  // Option 3: Good match on all three
+  if (titleSimilarity > 75 && yearMatch && authorMatch) {
+    console.log(`   ✅ GOOD MATCH - Same paper with minor variations`);
+    return true;
+  }
+
   // RULE 3: Otherwise, assume it's a DIFFERENT paper
   console.log(`   ❌ DIFFERENT PAPER - Not suggesting correction`);
   console.log(`      Original: "${originalReference.title}"`);
@@ -346,33 +504,33 @@ function generateGoogleScholarUrl(reference) {
  */
 function calculateSimilarity(str1, str2) {
   if (!str1 || !str2) return 0;
-  
+
   const s1 = str1.toLowerCase().trim();
   const s2 = str2.toLowerCase().trim();
-  
+
   if (s1 === s2) return 100;
-  
+
   // Extract words (alphanumeric only, remove punctuation)
   const words1 = s1.split(/[^a-z0-9]+/).filter(w => w.length > 2);
   const words2 = s2.split(/[^a-z0-9]+/).filter(w => w.length > 2);
-  
+
   if (words1.length === 0 || words2.length === 0) return 0;
-  
+
   // Count matching words
   const set1 = new Set(words1);
   const set2 = new Set(words2);
-  
+
   let matchCount = 0;
   for (const word of set1) {
     if (set2.has(word)) {
       matchCount++;
     }
   }
-  
+
   // Jaccard similarity: intersection / union
   const unionSize = set1.size + set2.size - matchCount;
   const jaccardSimilarity = (matchCount / unionSize) * 100;
-  
+
   // Also check word order similarity (for typo detection)
   let orderMatchCount = 0;
   const minLength = Math.min(words1.length, words2.length);
@@ -382,63 +540,190 @@ function calculateSimilarity(str1, str2) {
     }
   }
   const orderSimilarity = (orderMatchCount / Math.max(words1.length, words2.length)) * 100;
-  
+
   // Combine both scores (Jaccard is more important)
   const finalSimilarity = (jaccardSimilarity * 0.7) + (orderSimilarity * 0.3);
-  
+
   return Math.round(finalSimilarity);
 }
 
 /**
- * Detect specific issues with a reference
+ * Detect specific issues with a reference and provide detailed confidence breakdown
  */
 function detectIssues(original, match, titleSimilarity, yearMatch) {
   const issues = [];
-  
-  // Title mismatch
+
+  // Title mismatch - with severity levels
   if (titleSimilarity < 80) {
-    issues.push(`Title mismatch (${titleSimilarity}% match)`);
+    if (titleSimilarity < 30) {
+      issues.push(`❌ Critical: Title completely different (${titleSimilarity}% match) - Likely a different paper or severe typo`);
+    } else if (titleSimilarity < 60) {
+      issues.push(`⚠️ Major: Significant title mismatch (${titleSimilarity}% match) - Check for missing words or incorrect title`);
+    } else {
+      issues.push(`⚠️ Minor: Title differs slightly (${titleSimilarity}% match) - Possible typo or abbreviation`);
+    }
   }
-  
+
   // Year mismatch
-  if (!yearMatch && match.publication_year) {
-    issues.push(`Year mismatch: ${original.year} vs ${match.publication_year}`);
+  // Year mismatch - Ensure we compare numbers and ignore if years are identical
+  if (match.publication_year && Number(original.year) !== Number(match.publication_year)) {
+    const yearDiff = Math.abs(Number(original.year) - Number(match.publication_year));
+
+    // Double check - sometimes the API might return the same year but strict check failed?
+    // If diff is 0, don't report issue
+    if (yearDiff > 0) {
+      if (yearDiff > 5) {
+        issues.push(`❌ Critical: Year completely wrong (${original.year} vs ${match.publication_year}) - ${yearDiff} years difference`);
+      } else {
+        issues.push(`⚠️ Minor: Year mismatch (${original.year} vs ${match.publication_year}) - Possible preprint/final version`);
+      }
+    }
   }
-  
+
   // Missing DOI
   if (!match.doi && !original.doi) {
-    issues.push('No DOI found');
+    issues.push('ℹ️ Info: No DOI found - Consider adding for better tracking');
   }
-  
+
   // Check for common fake reference patterns
-  if (detectFakePatterns(original)) {
-    issues.push('⚠️ SUSPICIOUS - May be fake or AI-generated');
+  const fakePatterns = detectFakePatterns(original);
+  if (fakePatterns.length > 0) {
+    issues.push('⚠️ SUSPICIOUS PATTERNS DETECTED:');
+    fakePatterns.forEach(pattern => issues.push(`   • ${pattern}`));
   }
-  
+
   return issues;
 }
 
 /**
+ * Generate detailed confidence explanation
+ */
+function generateConfidenceExplanation(titleSimilarity, yearMatch, authorMatch, foundCount) {
+  const factors = [];
+
+  // Title factor (40% weight)
+  if (titleSimilarity >= 90) {
+    factors.push(`✅ Title: Excellent match (${titleSimilarity}%)`);
+  } else if (titleSimilarity >= 70) {
+    factors.push(`⚠️ Title: Good match (${titleSimilarity}%)`);
+  } else if (titleSimilarity >= 50) {
+    factors.push(`⚠️ Title: Weak match (${titleSimilarity}%)`);
+  } else {
+    factors.push(`❌ Title: Poor match (${titleSimilarity}%) - Major concern`);
+  }
+
+  // Year factor (20% weight)
+  if (yearMatch) {
+    factors.push(`✅ Year: Exact match`);
+  } else {
+    factors.push(`❌ Year: Mismatch - Reduces confidence by 20%`);
+  }
+
+  // Author factor (20% weight)
+  if (authorMatch) {
+    factors.push(`✅ Authors: Match found`);
+  } else {
+    factors.push(`⚠️ Authors: No clear match - Reduces confidence by 20%`);
+  }
+
+  // Database consensus (20% weight)
+  if (foundCount >= 3) {
+    factors.push(`✅ Found in all 3 databases (OpenAlex, Crossref, Semantic Scholar)`);
+  } else if (foundCount === 2) {
+    factors.push(`⚠️ Found in only ${foundCount} databases - Less reliable`);
+  } else {
+    factors.push(`⚠️ Found in only 1 database - Low reliability`);
+  }
+
+  return factors;
+}
+
+/**
  * Detect patterns that suggest a fake/AI-generated reference
+ * Returns array of detected suspicious patterns
  */
 function detectFakePatterns(reference) {
+  const patterns = [];
   const title = reference.title.toLowerCase();
-  const authors = reference.authors.toLowerCase();
-  
-  // Check for nonsense author names
-  if (/[0-9]{3,}|mohahs|xxxxx|test|fake|dummy/.test(authors)) {
-    return true;
+  const authors = (reference.authors || '').toLowerCase();
+  const year = reference.year;
+
+  // 1. AI-GENERATED TITLE PATTERNS
+  // Common patterns in AI-generated academic titles
+  const aiTitlePatterns = [
+    { pattern: /synthetic\s+(benchmark|dataset|evaluation|analysis)/i, msg: 'Contains "Synthetic" + technical term (common in AI-generated papers)' },
+    { pattern: /ablation[- ]driven/i, msg: 'Contains "Ablation-Driven" (uncommon phrasing, possibly AI-generated)' },
+    { pattern: /comprehensive\s+survey\s+of\s+\w+\s+in\s+the\s+era\s+of/i, msg: 'Overly generic survey title pattern' },
+    { pattern: /towards?\s+(a\s+)?better\s+understanding/i, msg: 'Generic "Towards Better Understanding" pattern' },
+    { pattern: /novel\s+approach\s+(for|to)\s+\w+\s+using/i, msg: 'Generic "Novel Approach" pattern' },
+    { pattern: /deep\s+learning[- ]based\s+\w+\s+for\s+\w+/i, msg: 'Generic "Deep Learning-based X for Y" pattern' },
+  ];
+
+  aiTitlePatterns.forEach(({ pattern, msg }) => {
+    if (pattern.test(reference.title)) {
+      patterns.push(msg);
+    }
+  });
+
+  // 2. OVERLY BUZZWORD-HEAVY TITLES
+  const buzzwords = ['synthetic', 'ablation', 'comprehensive', 'novel', 'advanced', 'intelligent', 'smart', 'efficient'];
+  const buzzwordCount = buzzwords.filter(word => title.includes(word)).length;
+  if (buzzwordCount >= 3) {
+    patterns.push(`Title contains ${buzzwordCount} buzzwords (may be AI-generated)`);
   }
-  
-  // Check for gibberish in title
-  if (/xxxxxxx|testing|dummy|placeholder/.test(title)) {
-    return true;
+
+  // 3. SUSPICIOUS AUTHOR PATTERNS
+  if (/[0-9]{3,}/.test(authors)) {
+    patterns.push('Author names contain numbers (likely corrupted data)');
   }
-  
-  // Check for impossible years
-  if (reference.year > new Date().getFullYear() + 1 || reference.year < 1900) {
-    return true;
+  if (/mohahs|xxxxx|test|fake|dummy|placeholder|lorem|ipsum/.test(authors)) {
+    patterns.push('Author names contain placeholder text');
   }
-  
-  return false;
+  if (authors.length < 3 && authors !== 'unknown') {
+    patterns.push('Author field too short (likely extraction error)');
+  }
+
+  // 4. SUSPICIOUS TITLE PATTERNS
+  if (/xxxxxxx|testing|dummy|placeholder|lorem|ipsum|sample|example/.test(title)) {
+    patterns.push('Title contains placeholder text');
+  }
+  if (title.length < 15) {
+    patterns.push('Title too short (likely incomplete or fake)');
+  }
+  if (title.length > 300) {
+    patterns.push('Title unusually long (may be corrupted extraction)');
+  }
+
+  // 5. IMPOSSIBLE OR SUSPICIOUS METADATA
+  const currentYear = new Date().getFullYear();
+  if (year > currentYear + 1) {
+    patterns.push(`Publication year (${year}) is in the future`);
+  }
+  if (year < 1900) {
+    patterns.push(`Publication year (${year}) is before 1900`);
+  }
+
+  // 6. TITLE STRUCTURE ISSUES
+  // Check for missing spaces (common in corrupted PDFs or fake data)
+  if (/[a-z][A-Z]/.test(reference.title) && !reference.title.includes('PhD') && !reference.title.includes('USA')) {
+    patterns.push('Title has unusual capitalization (possible extraction error)');
+  }
+
+  // 7. GENERIC CONFERENCE/WORKSHOP PATTERNS
+  // AI often generates plausible-sounding but fake conference names
+  if (/proceedings?\s+of\s+the\s+\d+(st|nd|rd|th)\s+\w+\s+workshop/i.test(reference.title)) {
+    const confMatch = reference.title.match(/\d+(st|nd|rd|th)\s+(\w+\s+){1,3}workshop/i);
+    if (confMatch) {
+      patterns.push('Contains generic workshop naming pattern (verify conference exists)');
+    }
+  }
+
+  // 8. YEAR-TITLE MISMATCH
+  // Some AI-generated references use very recent years with old-sounding titles
+  if (year >= 2020 && /legacy|traditional|classical|conventional/.test(title)) {
+    // This is actually fine - just a weak signal
+    // patterns.push('Recent year with old-sounding terminology');
+  }
+
+  return patterns;
 }

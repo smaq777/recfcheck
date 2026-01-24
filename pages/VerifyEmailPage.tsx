@@ -1,52 +1,67 @@
 
 import React, { useState, useEffect } from 'react';
-import { AppView } from '../types';
-import { sendEmail } from '../services';
+import { AppView, UserProfile } from '../types';
+import { verifyEmail } from '../auth-client';
 
 interface VerifyEmailPageProps {
   userEmail: string;
   onNavigate: (view: AppView) => void;
+  onAuthSuccess?: (user: UserProfile) => void;
+  verificationCode?: string;
 }
 
-const VerifyEmailPage: React.FC<VerifyEmailPageProps> = ({ userEmail, onNavigate }) => {
-  const [cooldown, setCooldown] = useState(0);
-  const [isSending, setIsSending] = useState(false);
+const VerifyEmailPage: React.FC<VerifyEmailPageProps> = ({ userEmail, onNavigate, onAuthSuccess, verificationCode: initialCode }) => {
+  const [verificationCode, setVerificationCode] = useState(initialCode || '');
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (cooldown > 0) {
-      const timer = setTimeout(() => setCooldown(cooldown - 1), 1000);
-      return () => clearTimeout(timer);
-    }
-  }, [cooldown]);
+  const handleVerify = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!verificationCode) return;
 
-  const handleResend = async () => {
-    if (cooldown === 0 && !isSending) {
-      setIsSending(true);
-      try {
-        const verificationHtml = `
-          <div style="font-family: sans-serif; padding: 20px; color: #333;">
-            <h2 style="color: #2c346d;">Verify your RefCheck account</h2>
-            <p>Welcome to RefCheck! Please verify your email to start auditing your bibliography.</p>
-            <div style="margin: 30px 0;">
-              <a href="${window.location.origin}?verify=true" style="background-color: #2c346d; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: bold;">Verify Email Address</a>
-            </div>
-            <p style="font-size: 12px; color: #666;">If you didn't create an account, you can safely ignore this email.</p>
-          </div>
-        `;
-        
-        const res = await sendEmail(userEmail, "Verify your RefCheck account", verificationHtml);
-        
-        if (res.success) {
-          setCooldown(60);
-          alert("Verification email resent!");
-        } else {
-          alert("Failed to resend email. Please try again later.");
+    console.log('[VerifyEmailPage] handleVerify called');
+    console.log('[VerifyEmailPage] Email:', userEmail);
+    console.log('[VerifyEmailPage] Code:', verificationCode);
+
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      console.log('[VerifyEmailPage] Calling verifyEmail API...');
+      const user = await verifyEmail(userEmail, verificationCode);
+      console.log('[VerifyEmailPage] Verification successful, user:', user);
+      
+      // Create full user profile
+      const userProfile: UserProfile = {
+        uid: user.id,
+        email: user.email,
+        displayName: user.displayName,
+        photoURL: user.photoURL,
+        provider: 'email',
+        emailVerified: true,
+        createdAt: user.createdAt,
+        settings: {
+          strictness: 'standard',
+          autoFill: true,
+          dedupe: true,
+          dataRetention: 24
+        },
+        subscription: {
+          plan: 'free',
+          checksThisMonth: 0,
+          maxChecksPerMonth: 5
         }
-      } catch (err) {
-        alert("An error occurred. Check your connection.");
-      } finally {
-        setIsSending(false);
-      }
+      };
+
+      console.log('[VerifyEmailPage] Created userProfile:', userProfile);
+      console.log('[VerifyEmailPage] userProfile.emailVerified:', userProfile.emailVerified);
+      console.log('[VerifyEmailPage] Calling onAuthSuccess with userProfile');
+      onAuthSuccess?.(userProfile);
+    } catch (err: any) {
+      setError(err.message || 'Verification failed. Please try again.');
+      console.error('Verification error:', err);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -67,31 +82,55 @@ const VerifyEmailPage: React.FC<VerifyEmailPageProps> = ({ userEmail, onNavigate
             We sent a verification link to:<br/>
             <span className="text-slate-900 font-bold">{userEmail}</span>
           </p>
-          <p className="text-slate-400 text-sm mt-6 mb-10 italic">
+          <p className="text-slate-400 text-sm mt-6 mb-6 italic">
             Please check your inbox (and spam folder) to complete your registration.
           </p>
 
-          <div className="space-y-4">
+          {error && (
+            <div className="mb-6 p-4 rounded-xl bg-red-50 text-error text-sm font-bold border border-red-100 flex items-center gap-3">
+              <span className="material-symbols-outlined text-lg">error</span>
+              {error}
+            </div>
+          )}
+
+          {initialCode && (
+            <div className="mb-6 p-4 rounded-xl bg-blue-50 border border-blue-200">
+              <p className="text-xs font-bold text-blue-900 mb-2">🧪 DEV MODE - Test Verification Code:</p>
+              <code className="text-sm font-mono bg-white p-3 rounded block text-blue-900 break-all">{initialCode}</code>
+            </div>
+          )}
+
+          <form onSubmit={handleVerify} className="space-y-4">
+            <div>
+              <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-2">
+                Verification Code
+              </label>
+              <input 
+                type="text" 
+                required 
+                value={verificationCode} 
+                onChange={(e) => setVerificationCode(e.target.value)}
+                placeholder="Enter verification code from email"
+                className="w-full h-12 px-4 rounded-xl border border-border-light bg-slate-50 focus:bg-white focus:ring-2 focus:ring-primary/20 transition-all font-medium"
+              />
+            </div>
+
             <button 
-              onClick={handleResend}
-              disabled={cooldown > 0 || isSending}
-              className="w-full h-14 rounded-xl border-2 border-primary text-primary font-black text-sm uppercase tracking-widest hover:bg-primary/5 transition-all disabled:opacity-50 flex items-center justify-center"
+              type="submit"
+              disabled={isLoading || !verificationCode}
+              className="w-full h-14 rounded-xl bg-primary text-white font-black text-lg shadow-xl shadow-primary/20 hover:bg-primary-hover transition-all flex items-center justify-center disabled:opacity-50"
             >
-              {isSending ? (
-                <div className="size-5 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
-              ) : cooldown > 0 ? (
-                `Resend in ${cooldown}s`
-              ) : (
-                'Resend Verification Email'
-              )}
+              {isLoading ? <div className="size-6 border-2 border-white border-t-transparent rounded-full animate-spin"></div> : 'Verify Email'}
             </button>
+
             <button 
+              type="button"
               onClick={handleLogout}
               className="w-full h-12 text-slate-400 font-bold text-sm hover:text-error transition-all"
             >
               Sign out and use a different account
             </button>
-          </div>
+          </form>
         </div>
       </div>
     </div>

@@ -10,32 +10,47 @@ const pool = new Pool({
   ssl: {
     rejectUnauthorized: false, // Required for Neon
   },
-  max: 20, // Maximum number of clients
-  idleTimeoutMillis: 30000, // Close idle clients after 30 seconds
-  connectionTimeoutMillis: 10000, // Return an error after 10 seconds if connection is unavailable
+  max: 20, // Maximum number of clients in pool
+  idleTimeoutMillis: 120000, // Keep idle clients for 2 minutes (was 30s)
+  connectionTimeoutMillis: 30000, // Wait 30s for connection (was 10s)
+  keepAlive: true, // Enable TCP keepalive
+  keepAliveInitialDelayMillis: 10000, // Start keepalive after 10s
 });
 
 // Event listeners for pool errors
 pool.on('error', (err, client) => {
-  console.error('Unexpected error on idle client', err);
-  process.exit(-1);
+  console.error('⚠️ Pool error (non-fatal):', err.message);
+  // Don't exit - let pool recover
 });
 
 pool.on('connect', () => {
   console.log('✅ Connected to Neon PostgreSQL database');
 });
 
-// Query helper with logging
-export async function query(text, params) {
+// Query helper with logging and retry logic
+export async function query(text, params, retries = 3) {
   const start = Date.now();
-  try {
-    const res = await pool.query(text, params);
-    const duration = Date.now() - start;
-    console.log(`📊 Query executed in ${duration}ms:`, { text: text.substring(0, 100), rows: res.rowCount });
-    return res;
-  } catch (error) {
-    console.error('❌ Database query error:', error);
-    throw error;
+  
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    try {
+      const res = await pool.query(text, params);
+      const duration = Date.now() - start;
+      console.log(`📊 Query executed in ${duration}ms:`, { text: text.substring(0, 100), rows: res.rowCount });
+      return res;
+    } catch (error) {
+      const isConnectionError = error.message?.includes('Connection') || 
+                                error.message?.includes('timeout') ||
+                                error.code === 'ECONNRESET';
+      
+      if (isConnectionError && attempt < retries) {
+        console.warn(`⚠️ Connection error, retrying (${attempt}/${retries})...`);
+        await new Promise(resolve => setTimeout(resolve, 1000 * attempt)); // Exponential backoff
+        continue;
+      }
+      
+      console.error('❌ Database query error:', error.message);
+      throw error;
+    }
   }
 }
 

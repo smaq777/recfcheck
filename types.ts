@@ -57,6 +57,16 @@ export interface Reference {
   isDuplicate?: boolean;
   duplicateGroupId?: string; // ID to group duplicates together
   userDecision?: 'accepted' | 'rejected';
+  // Additional database fields
+  original_authors?: string;
+  original_title?: string;
+  original_year?: number;
+  cited_by_count?: number;
+  is_retracted?: boolean;
+  openalex_url?: string;
+  crossref_url?: string;
+  semantic_scholar_url?: string;
+  google_scholar_url?: string;
 }
 
 export interface DuplicateGroup {

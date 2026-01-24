@@ -183,13 +183,15 @@ export async function saveBibliographyReference(ref: Partial<BibliographyReferen
   const result = await queryDatabase(
     `INSERT INTO bibliography_references (
       job_id, user_id, bibtex_key, title, authors, year, source, doi, url,
-      status, confidence_score, canonical_title, canonical_year, venue, issues, is_retracted, ai_insight
-     ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
+      status, confidence_score, canonical_title, canonical_year, venue, issues, is_retracted, ai_insight,
+      duplicate_group_id, is_primary_duplicate
+     ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)
      RETURNING *`,
     [
       ref.job_id, ref.user_id, ref.bibtex_key, ref.title, ref.authors, ref.year, ref.source, ref.doi, ref.url,
       ref.status || 'pending', ref.confidence_score || 0, ref.canonical_title, ref.canonical_year, ref.venue,
-      ref.issues || [], ref.is_retracted || false, ref.ai_insight
+      ref.issues || [], ref.is_retracted || false, ref.ai_insight,
+      (ref as any).duplicate_group_id || null, (ref as any).is_primary_duplicate || false
     ]
   );
   return result.rows?.[0];
@@ -234,15 +236,34 @@ export async function getAnalysisJobResults(jobId: string): Promise<Bibliography
 }
 
 /**
+ * Get all analysis jobs for a user
+ */
+export async function getUserAnalysisJobs(userId: string): Promise<AnalysisJob[]> {
+  const result = await queryDatabase(
+    `SELECT * FROM analysis_jobs
+     WHERE user_id = $1
+     ORDER BY created_at DESC`,
+    [userId]
+  );
+  return result.rows || [];
+}
+
+/**
  * Update analysis job status
  */
-export async function updateAnalysisJobStatus(jobId: string, status: string, counts?: { verified: number; issues: number }): Promise<void> {
+export async function updateAnalysisJobStatus(jobId: string, status: string, counts?: { verified: number; issues: number; warnings?: number }): Promise<void> {
   let query = `UPDATE analysis_jobs SET status = $1, updated_at = CURRENT_TIMESTAMP`;
   const params: any[] = [status, jobId];
   
   if (counts) {
     query += `, verified_count = $3, issues_count = $4`;
     params.push(counts.verified, counts.issues);
+    
+    // Add warnings count if provided
+    if (counts.warnings !== undefined) {
+      query += `, warnings_count = $5`;
+      params.push(counts.warnings);
+    }
   }
   
   query += ` WHERE id = $2`;

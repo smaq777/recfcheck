@@ -11,7 +11,7 @@ import { query, transaction } from './db-connection.js';
  */
 export async function createUser(email, name, passwordHash) {
   const result = await query(
-    `INSERT INTO users (email, name, password_hash)
+    `INSERT INTO users (email, display_name, password_hash)
      VALUES ($1, $2, $3)
      RETURNING *`,
     [email, name, passwordHash]
@@ -121,9 +121,12 @@ export async function completeJob(jobId, status = 'completed') {
  */
 export async function getUserJobs(userId, limit = 50) {
   const result = await query(
-    `SELECT * FROM jobs 
+    `SELECT j.*,
+     (SELECT COUNT(*)::int FROM "references" r WHERE r.job_id = j.id AND r.status = 'verified') as verified_count,
+     (SELECT COUNT(*)::int FROM "references" r WHERE r.job_id = j.id AND r.issues IS NOT NULL AND jsonb_typeof(r.issues) = 'array' AND jsonb_array_length(r.issues) > 0) as issues_count
+     FROM jobs j 
      WHERE user_id = $1 
-     ORDER BY created_at DESC 
+     ORDER BY upload_time DESC 
      LIMIT $2`,
     [userId, limit]
   );
@@ -161,27 +164,42 @@ export async function createReference(jobId, referenceData) {
       job_id, bibtex_key, original_title, original_authors, original_year, original_source,
       canonical_title, canonical_authors, canonical_year,
       corrected_title, corrected_authors, corrected_year,
-      status, confidence_score, venue, doi
+      status, confidence_score, venue, doi, is_retracted,
+      cited_by_count, google_scholar_url, openalex_url, crossref_url, semantic_scholar_url,
+      duplicate_group_id, duplicate_group_count, is_primary_duplicate, issues,
+      metadata, bibtex_type
     )
-    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28)
     RETURNING *`,
     [
       jobId,
       referenceData.bibtexKey,
       originalTitle,
-      originalAuthors ? JSON.stringify(originalAuthors) : null,
+      originalAuthors || null,
       originalYear,
       referenceData.originalSource,
       suggestedTitle,
-      suggestedAuthors ? JSON.stringify(suggestedAuthors) : null,
+      suggestedAuthors || null,
       suggestedYear,
       referenceData.correctedTitle,
-      referenceData.correctedAuthors ? JSON.stringify(referenceData.correctedAuthors) : null,
+      referenceData.correctedAuthors || null,
       referenceData.correctedYear,
       status || 'verified',
       referenceData.confidenceScore,
       suggestedVenue,
-      suggestedDoi
+      suggestedDoi,
+      referenceData.is_retracted || false,
+      referenceData.cited_by_count || null,
+      referenceData.google_scholar_url || null,
+      referenceData.openalex_url || null,
+      referenceData.crossref_url || null,
+      referenceData.semantic_scholar_url || null,
+      referenceData.duplicate_group_id || null,
+      referenceData.duplicate_group_count || null,
+      referenceData.is_primary_duplicate || false,
+      issues ? JSON.stringify(issues) : '[]',
+      referenceData.metadata ? JSON.stringify(referenceData.metadata) : '{}',
+      referenceData.bibtex_type || 'article'
     ]
   );
   return result.rows[0];
@@ -223,31 +241,112 @@ export async function getReferenceById(referenceId) {
  * @returns {Promise<Object>} Updated reference object
  */
 export async function updateReferenceDecision(referenceId, decision, correctedData = {}) {
-  const updateFields = {
-    user_decision: decision
-  };
+  console.log('[updateReferenceDecision] Updating reference:', referenceId, 'Decision:', decision);
+  console.log('[updateReferenceDecision] Corrected data:', correctedData);
 
-  // If accepted, update with corrected data
+  // If accepted, apply canonical values to the original fields
   if (decision === 'accepted' && correctedData) {
-    if (correctedData.title) updateFields.corrected_title = correctedData.title;
-    if (correctedData.authors) updateFields.corrected_authors = JSON.stringify(correctedData.authors);
-    if (correctedData.year) updateFields.corrected_year = correctedData.year;
-    if (correctedData.venue) updateFields.venue = correctedData.venue;
-    if (correctedData.doi) updateFields.doi = correctedData.doi;
-  }
+    // Calculate which fields were corrected for the issues array
+    const correctedFields = [];
+    const updates = {};
 
-  const setClause = Object.keys(updateFields)
-    .map((key, index) => `${key} = $${index + 2}`)
-    .join(', ');
-  
-  const values = [referenceId, ...Object.values(updateFields)];
+    if (correctedData.title) {
+      updates.title = correctedData.title;
+      correctedFields.push('title');
+    }
+    if (correctedData.authors) {
+      updates.authors = correctedData.authors;
+      correctedFields.push('authors');
+    }
+    if (correctedData.year) {
+      updates.year = correctedData.year;
+      correctedFields.push('year');
+    }
+    if (correctedData.source) {
+      updates.source = correctedData.source;
+      correctedFields.push('venue');
+    }
+
+    const result = await query(
+      `UPDATE "references" 
+       SET 
+         original_title = COALESCE($2, original_title),
+         original_authors = COALESCE($3, original_authors),
+         original_year = COALESCE($4, original_year),
+         original_source = COALESCE($5, original_source),
+         metadata = COALESCE($6, metadata),
+         bibtex_type = COALESCE($7, bibtex_type),
+         status = 'verified',
+         confidence_score = 100,
+         issues = $8,
+         updated_at = CURRENT_TIMESTAMP
+       WHERE id = $1
+       RETURNING *`,
+      [
+        referenceId,
+        correctedData.title || null,
+        correctedData.authors || null,
+        correctedData.year || null,
+        correctedData.source || null,
+        correctedData.metadata ? JSON.stringify(correctedData.metadata) : null,
+        correctedData.bibtex_type || null,
+        JSON.stringify([`✓ Corrected: ${correctedFields.join(', ')}`])
+      ]
+    );
+
+    console.log('[updateReferenceDecision] Updated to:', result.rows[0]);
+    return result.rows[0];
+  } else {
+    // User rejected - mark as reviewed but keep original
+    const result = await query(
+      `UPDATE "references" 
+       SET 
+         status = 'verified',
+         issues = $2,
+         updated_at = CURRENT_TIMESTAMP
+       WHERE id = $1
+       RETURNING *`,
+      [referenceId, JSON.stringify(['⚠ Needs review: User kept original values'])]
+    );
+
+    console.log('[updateReferenceDecision] Marked as reviewed:', result.rows[0]);
+    return result.rows[0];
+  }
+}
+
+/**
+ * Update reference duplicate status
+ * @param {string} referenceId - Reference UUID
+ * @param {Object} duplicateData - Duplicate data (status, duplicate_group_id, duplicate_group_count, is_primary_duplicate, issues)
+ * @returns {Promise<Object>} Updated reference object
+ */
+export async function updateReferenceDuplicateStatus(referenceId, duplicateData) {
+  const {
+    status,
+    duplicate_group_id,
+    duplicate_group_count,
+    is_primary_duplicate,
+    issues
+  } = duplicateData;
 
   const result = await query(
     `UPDATE "references" 
-     SET ${setClause}
+     SET 
+       status = $2,
+       duplicate_group_id = $3,
+       duplicate_group_count = $4,
+       is_primary_duplicate = $5,
+       issues = $6
      WHERE id = $1
      RETURNING *`,
-    values
+    [
+      referenceId,
+      status,
+      duplicate_group_id,
+      duplicate_group_count,
+      is_primary_duplicate,
+      issues ? JSON.stringify(issues) : null
+    ]
   );
   return result.rows[0];
 }
@@ -307,6 +406,21 @@ export async function createReferenceIssue(referenceId, issueType, description, 
      VALUES ($1, $2, $3)
      RETURNING *`,
     [referenceId, issueType, description]
+  );
+  return result.rows[0];
+}
+
+/**
+ * Delete a reference
+ * @param {string} referenceId - Reference UUID
+ * @returns {Promise<Object>} Deleted reference object
+ */
+export async function deleteReference(referenceId) {
+  const result = await query(
+    `DELETE FROM "references" 
+     WHERE id = $1
+     RETURNING *`,
+    [referenceId]
   );
   return result.rows[0];
 }

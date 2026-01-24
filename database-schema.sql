@@ -47,10 +47,16 @@ CREATE TABLE bibliography_references (
     confidence_score INTEGER DEFAULT 0,
     canonical_title VARCHAR(1024),
     canonical_year INTEGER,
+    canonical_authors TEXT,
     venue VARCHAR(255),
-    issues TEXT[],
+    issues JSONB,
     is_retracted BOOLEAN DEFAULT false,
     ai_insight TEXT,
+    cited_by_count INTEGER,
+    openalex_url TEXT,
+    crossref_url TEXT,
+    semantic_scholar_url TEXT,
+    google_scholar_url TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );

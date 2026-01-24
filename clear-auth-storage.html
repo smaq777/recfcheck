@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RefCheck - Clear Auth Storage</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 600px;
+            width: 100%;
+            padding: 40px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .logo {
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 32px;
+            margin: 0 auto 20px;
+        }
+
+        h1 {
+            font-size: 28px;
+            color: #1f2937;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            color: #6b7280;
+            font-size: 14px;
+        }
+
+        .section {
+            margin-bottom: 30px;
+        }
+
+        .section-title {
+            font-size: 14px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #9ca3af;
+            margin-bottom: 15px;
+        }
+
+        .storage-key {
+            display: flex;
+            align-items: center;
+            padding: 12px;
+            background: #f3f4f6;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            font-family: 'Monaco', 'Courier New', monospace;
+            font-size: 13px;
+        }
+
+        .storage-key.active {
+            background: #fef2f2;
+            border-left: 4px solid #ef4444;
+        }
+
+        .storage-key .status {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            margin-right: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+        }
+
+        .storage-key.active .status {
+            background: #fecaca;
+            color: #991b1b;
+        }
+
+        .storage-key:not(.active) .status {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+
+        .buttons {
+            display: flex;
+            gap: 12px;
+            margin-top: 30px;
+        }
+
+        button {
+            flex: 1;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn-secondary {
+            background: #f3f4f6;
+            color: #1f2937;
+        }
+
+        .btn-secondary:hover {
+            background: #e5e7eb;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .status-message {
+            padding: 12px;
+            border-radius: 8px;
+            margin-top: 20px;
+            display: none;
+        }
+
+        .status-message.success {
+            background: #dcfce7;
+            color: #166534;
+            border: 1px solid #86efac;
+            display: block;
+        }
+
+        .status-message.error {
+            background: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #fca5a5;
+            display: block;
+        }
+
+        .status-message.info {
+            background: #dbeafe;
+            color: #1e40af;
+            border: 1px solid #93c5fd;
+            display: block;
+        }
+
+        .info-box {
+            background: #f0f9ff;
+            border-left: 4px solid #0284c7;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 13px;
+            color: #0c2d57;
+            line-height: 1.6;
+        }
+
+        .next-steps {
+            background: #f9f5ff;
+            border-left: 4px solid #7c3aed;
+            padding: 15px;
+            border-radius: 8px;
+            font-size: 13px;
+            color: #3f0f5c;
+            line-height: 1.6;
+        }
+
+        .next-steps strong {
+            display: block;
+            margin-bottom: 8px;
+            color: #5b21b6;
+        }
+
+        ol {
+            margin-left: 20px;
+            margin-top: 8px;
+        }
+
+        li {
+            margin-bottom: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="logo">✓</div>
+            <h1>Clear Auth Storage</h1>
+            <p class="subtitle">Remove cached authentication data</p>
+        </div>
+
+        <div class="info-box">
+            <strong>This tool will:</strong>
+            <ul>
+                <li>Clear all stored authentication tokens</li>
+                <li>Remove cached user sessions</li>
+                <li>Reset the app to landing page</li>
+                <li>Force fresh login on next load</li>
+            </ul>
+        </div>
+
+        <div class="section">
+            <div class="section-title">Storage Keys to Clear</div>
+            <div id="storageList"></div>
+        </div>
+
+        <div class="status-message" id="statusMessage"></div>
+
+        <div class="next-steps">
+            <strong>After clearing:</strong>
+            <ol>
+                <li>The page will refresh automatically</li>
+                <li>You'll see the landing page with "Log In" & "Get Started"</li>
+                <li>Try logging in with a valid account</li>
+                <li>You should be directed to email verification or dashboard</li>
+            </ol>
+        </div>
+
+        <div class="buttons">
+            <button class="btn-secondary" onclick="location.reload()">Cancel</button>
+            <button class="btn-primary" onclick="clearStorage()">Clear Storage & Reload</button>
+        </div>
+    </div>
+
+    <script>
+        // List of keys to clear
+        const keysToCheck = [
+            'refcheck_user',
+            'refcheck_token',
+            'refcheck_session',
+            'auth_user',
+            'user_session',
+            'auth_token',
+            'user_data',
+            'access_token',
+            'refresh_token',
+        ];
+
+        // Initialize the page
+        function init() {
+            const list = document.getElementById('storageList');
+            list.innerHTML = '';
+
+            keysToCheck.forEach(key => {
+                const exists = localStorage.getItem(key) !== null;
+                const div = document.createElement('div');
+                div.className = `storage-key ${exists ? 'active' : ''}`;
+                
+                const value = localStorage.getItem(key);
+                const preview = value 
+                    ? value.substring(0, 50) + (value.length > 50 ? '...' : '')
+                    : '(not found)';
+                
+                div.innerHTML = `
+                    <div class="status">${exists ? '✕' : '✓'}</div>
+                    <div>
+                        <div><strong>${key}</strong></div>
+                        <div style="color: #9ca3af; font-size: 11px;">${preview}</div>
+                    </div>
+                `;
+                list.appendChild(div);
+            });
+        }
+
+        // Clear storage function
+        function clearStorage() {
+            try {
+                const found = [];
+                keysToCheck.forEach(key => {
+                    if (localStorage.getItem(key) !== null) {
+                        found.push(key);
+                        localStorage.removeItem(key);
+                    }
+                });
+
+                const message = document.getElementById('statusMessage');
+                if (found.length > 0) {
+                    message.className = 'status-message success';
+                    message.textContent = `✓ Cleared ${found.length} storage key(s): ${found.join(', ')}`;
+                } else {
+                    message.className = 'status-message info';
+                    message.textContent = 'ℹ No auth data found to clear.';
+                }
+
+                // Reload after 1 second
+                setTimeout(() => {
+                    window.location.href = '/';
+                }, 1500);
+            } catch (error) {
+                const message = document.getElementById('statusMessage');
+                message.className = 'status-message error';
+                message.textContent = `✕ Error: ${error.message}`;
+            }
+        }
+
+        // Run on load
+        init();
+    </script>
+</body>
+</html>

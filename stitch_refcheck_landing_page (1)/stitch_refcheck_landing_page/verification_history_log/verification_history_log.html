@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Verification History Log</title>
+<!-- Google Fonts -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200..800&amp;display=swap" rel="stylesheet"/>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Theme Configuration -->
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#2c346d",
+                        "primary-dark": "#3d4785",
+                        "background-light": "#f8fafb",
+                        "background-dark": "#191d2e",
+                        "surface-light": "#ffffff",
+                        "surface-dark": "#232942",
+                        "border-light": "#e5eaf1",
+                        "border-dark": "#2f3656",
+                    },
+                    fontFamily: {
+                        "display": ["Manrope", "sans-serif"]
+                    },
+                    borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-gray-900 dark:text-white font-display transition-colors duration-200 min-h-screen flex flex-col">
+<!-- Top Navigation -->
+<header class="sticky top-0 z-50 w-full border-b border-border-light dark:border-border-dark bg-background-light/95 dark:bg-background-dark/95 backdrop-blur-sm">
+<div class="max-w-[1440px] mx-auto px-6 md:px-10 h-16 flex items-center justify-between">
+<div class="flex items-center gap-3">
+<div class="size-8 text-primary dark:text-indigo-400">
+<svg class="w-full h-full" fill="none" viewbox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+<g clip-path="url(#clip0_6_543)">
+<path d="M42.1739 20.1739L27.8261 5.82609C29.1366 7.13663 28.3989 10.1876 26.2002 13.7654C24.8538 15.9564 22.9595 18.3449 20.6522 20.6522C18.3449 22.9595 15.9564 24.8538 13.7654 26.2002C10.1876 28.3989 7.13663 29.1366 5.82609 27.8261L20.1739 42.1739C21.4845 43.4845 24.5355 42.7467 28.1133 40.548C30.3042 39.2016 32.6927 37.3073 35 35C37.3073 32.6927 39.2016 30.3042 40.548 28.1133C42.7467 24.5355 43.4845 21.4845 42.1739 20.1739Z" fill="currentColor"></path>
+<path clip-rule="evenodd" d="M7.24189 26.4066C7.31369 26.4411 7.64204 26.5637 8.52504 26.3738C9.59462 26.1438 11.0343 25.5311 12.7183 24.4963C14.7583 23.2426 17.0256 21.4503 19.238 19.238C21.4503 17.0256 23.2426 14.7583 24.4963 12.7183C25.5311 11.0343 26.1438 9.59463 26.3738 8.52504C26.5637 7.64204 26.4411 7.31369 26.4066 7.24189C26.345 7.21246 26.143 7.14535 25.6664 7.1918C24.9745 7.25925 23.9954 7.5498 22.7699 8.14278C20.3369 9.32007 17.3369 11.4915 14.4142 14.4142C11.4915 17.3369 9.32007 20.3369 8.14278 22.7699C7.5498 23.9954 7.25925 24.9745 7.1918 25.6664C7.14534 26.143 7.21246 26.345 7.24189 26.4066ZM29.9001 10.7285C29.4519 12.0322 28.7617 13.4172 27.9042 14.8126C26.465 17.1544 24.4686 19.6641 22.0664 22.0664C19.6641 24.4686 17.1544 26.465 14.8126 27.9042C13.4172 28.7617 12.0322 29.4519 10.7285 29.9001L21.5754 40.747C21.6001 40.7606 21.8995 40.931 22.8729 40.7217C23.9424 40.4916 25.3821 39.879 27.0661 38.8441C29.1062 37.5904 31.3734 35.7982 33.5858 33.5858C35.7982 31.3734 37.5904 29.1062 38.8441 27.0661C39.879 25.3821 40.4916 23.9425 40.7216 22.8729C40.931 21.8995 40.7606 21.6001 40.747 21.5754L29.9001 10.7285ZM29.2403 4.41187L43.5881 18.7597C44.9757 20.1473 44.9743 22.1235 44.6322 23.7139C44.2714 25.3919 43.4158 27.2666 42.252 29.1604C40.8128 31.5022 38.8165 34.012 36.4142 36.4142C34.012 38.8165 31.5022 40.8128 29.1604 42.252C27.2666 43.4158 25.3919 44.2714 23.7139 44.6322C22.1235 44.9743 20.1473 44.9757 18.7597 43.5881L4.41187 29.2403C3.29027 28.1187 3.08209 26.5973 3.21067 25.2783C3.34099 23.9415 3.8369 22.4852 4.54214 21.0277C5.96129 18.0948 8.43335 14.7382 11.5858 11.5858C14.7382 8.43335 18.0948 5.9613 21.0277 4.54214C22.4852 3.8369 23.9415 3.34099 25.2783 3.21067C26.5973 3.08209 28.1187 3.29028 29.2403 4.41187Z" fill="currentColor" fill-rule="evenodd"></path>
+</g>
+<defs>
+<clippath id="clip0_6_543"><rect fill="white" height="48" width="48"></rect></clippath>
+</defs>
+</svg>
+</div>
+<h2 class="text-primary dark:text-white text-lg font-bold leading-tight tracking-[-0.015em]">RefCheck</h2>
+</div>
+<div class="flex items-center gap-6">
+<!-- Project Selector (Mock) -->
+<div class="hidden sm:flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 font-medium cursor-pointer hover:text-primary dark:hover:text-white transition-colors">
+<span>Project: Thesis 2024</span>
+<span class="material-symbols-outlined text-lg">expand_more</span>
+</div>
+<div class="h-6 w-px bg-border-light dark:bg-border-dark hidden sm:block"></div>
+<button class="flex items-center justify-center rounded-lg h-9 px-4 bg-primary hover:bg-primary-dark transition-colors text-white text-sm font-bold shadow-sm">
+<span class="mr-2 material-symbols-outlined text-[18px]">add</span>
+<span>New Check</span>
+</button>
+<div class="bg-center bg-no-repeat bg-cover rounded-full size-9 border border-border-light dark:border-border-dark" data-alt="User avatar showing a professional portrait" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuCjtxw4MKYKynVriTAB2S61L12lO2FxqaBuT9VSPkRUSnjGR-0T3O0gANpDaH1JPiLYGD9mlFKg1FobQKvAFph7J17C4-96BOjVtknhjjQbyae0yy255jo7FB9if3ItYuJR3cqgZrxlL6Snwd2tNpgjI6xm_x4SjyE98l6Z33G5Tg9RurAbVVot8XrgD8GujFAIxXetzOCwwTcgsI3P4uOlXPDSUliAZeEpg58Ufc7V2KGA2636ooHNh6NWGDxNgV4nX4LOfzYbpm4");'></div>
+</div>
+</div>
+</header>
+<!-- Main Content -->
+<main class="flex-1 w-full max-w-[1200px] mx-auto px-6 py-10 md:px-10">
+<!-- Page Header -->
+<div class="mb-10">
+<h1 class="text-gray-900 dark:text-white text-3xl md:text-4xl font-extrabold leading-tight tracking-[-0.025em] mb-2">Verification History</h1>
+<p class="text-gray-500 dark:text-gray-400 text-lg font-normal leading-relaxed max-w-2xl">
+                Archive of all bibliography verification jobs. Review past results, analyze issues, and manage your verification records.
+            </p>
+</div>
+<!-- Filter Toolbar -->
+<div class="flex flex-col md:flex-row gap-4 mb-6 items-end md:items-center justify-between">
+<div class="flex flex-col md:flex-row gap-4 w-full md:w-auto flex-1">
+<!-- Search -->
+<div class="relative w-full md:max-w-md group">
+<div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+<span class="material-symbols-outlined text-gray-400">search</span>
+</div>
+<input class="block w-full pl-10 pr-3 py-2.5 border border-border-light dark:border-border-dark rounded-lg leading-5 bg-surface-light dark:bg-surface-dark text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary sm:text-sm transition-shadow shadow-sm" placeholder="Search by filename..." type="text"/>
+</div>
+<!-- Date Range Picker -->
+<div class="relative min-w-[200px]">
+<select class="appearance-none block w-full pl-3 pr-10 py-2.5 border border-border-light dark:border-border-dark rounded-lg leading-5 bg-surface-light dark:bg-surface-dark text-gray-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary sm:text-sm shadow-sm cursor-pointer">
+<option>Last 30 Days</option>
+<option>Last 7 Days</option>
+<option>This Year</option>
+<option>Custom Range...</option>
+</select>
+<div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500">
+<span class="material-symbols-outlined text-sm">calendar_today</span>
+</div>
+</div>
+</div>
+<!-- Export / Bulk Actions (Optional placeholder for future) -->
+<div class="hidden md:block">
+<button class="text-gray-500 dark:text-gray-400 hover:text-primary dark:hover:text-white text-sm font-semibold flex items-center gap-1 transition-colors">
+<span class="material-symbols-outlined text-[18px]">download</span>
+                    Export CSV
+                 </button>
+</div>
+</div>
+<!-- Data Table Container -->
+<div class="bg-surface-light dark:bg-surface-dark rounded-xl border border-border-light dark:border-border-dark shadow-sm overflow-hidden mb-6">
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="border-b border-border-light dark:border-border-dark bg-gray-50/50 dark:bg-gray-800/30">
+<th class="py-4 px-6 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider w-[180px]">Date</th>
+<th class="py-4 px-6 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider min-w-[240px]">Filename</th>
+<th class="py-4 px-6 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider w-[140px] text-center md:text-left">Entries</th>
+<th class="py-4 px-6 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider min-w-[220px]">Status</th>
+<th class="py-4 px-6 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider w-[180px] text-right">Actions</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-border-light dark:divide-border-dark text-sm">
+<!-- Row 1 -->
+<tr class="group hover:bg-gray-50 dark:hover:bg-gray-800/40 transition-colors">
+<td class="py-4 px-6 text-gray-500 dark:text-gray-400 whitespace-nowrap">
+                                Oct 24, 2023 <span class="text-xs ml-1 opacity-70">14:30</span>
+</td>
+<td class="py-4 px-6 font-semibold text-gray-900 dark:text-white">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-blue-500 text-[20px]">description</span>
+                                    thesis_final_v2.docx
+                                </div>
+</td>
+<td class="py-4 px-6 text-gray-600 dark:text-gray-300 font-medium text-center md:text-left">
+                                142
+                            </td>
+<td class="py-4 px-6">
+<div class="flex flex-col sm:flex-row gap-2 sm:gap-3">
+<div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 text-xs font-semibold border border-green-100 dark:border-green-900/30">
+<div class="size-1.5 rounded-full bg-green-500"></div>
+                                        138 Checked
+                                    </div>
+<div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 text-xs font-semibold border border-red-100 dark:border-red-900/30">
+<div class="size-1.5 rounded-full bg-red-500"></div>
+                                        4 Issues
+                                    </div>
+</div>
+</td>
+<td class="py-4 px-6 text-right">
+<div class="flex items-center justify-end gap-2 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity">
+<button class="px-3 py-1.5 rounded-md text-primary dark:text-indigo-300 hover:bg-primary/5 dark:hover:bg-indigo-500/10 font-bold text-xs transition-colors border border-transparent hover:border-primary/10">
+                                        View Results
+                                    </button>
+<button class="size-8 flex items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors">
+<span class="material-symbols-outlined text-[20px]">more_vert</span>
+</button>
+</div>
+</td>
+</tr>
+<!-- Row 2 -->
+<tr class="group hover:bg-gray-50 dark:hover:bg-gray-800/40 transition-colors">
+<td class="py-4 px-6 text-gray-500 dark:text-gray-400 whitespace-nowrap">
+                                Oct 20, 2023 <span class="text-xs ml-1 opacity-70">09:15</span>
+</td>
+<td class="py-4 px-6 font-semibold text-gray-900 dark:text-white">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-red-500 text-[20px]">picture_as_pdf</span>
+                                    research_paper_draft.pdf
+                                </div>
+</td>
+<td class="py-4 px-6 text-gray-600 dark:text-gray-300 font-medium text-center md:text-left">
+                                89
+                            </td>
+<td class="py-4 px-6">
+<div class="flex flex-col sm:flex-row gap-2 sm:gap-3">
+<div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 text-xs font-semibold border border-green-100 dark:border-green-900/30">
+<div class="size-1.5 rounded-full bg-green-500"></div>
+                                        89 Checked
+                                    </div>
+</div>
+</td>
+<td class="py-4 px-6 text-right">
+<div class="flex items-center justify-end gap-2 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity">
+<button class="px-3 py-1.5 rounded-md text-primary dark:text-indigo-300 hover:bg-primary/5 dark:hover:bg-indigo-500/10 font-bold text-xs transition-colors border border-transparent hover:border-primary/10">
+                                        View Results
+                                    </button>
+<button class="size-8 flex items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors">
+<span class="material-symbols-outlined text-[20px]">more_vert</span>
+</button>
+</div>
+</td>
+</tr>
+<!-- Row 3 -->
+<tr class="group hover:bg-gray-50 dark:hover:bg-gray-800/40 transition-colors">
+<td class="py-4 px-6 text-gray-500 dark:text-gray-400 whitespace-nowrap">
+                                Sep 15, 2023 <span class="text-xs ml-1 opacity-70">16:45</span>
+</td>
+<td class="py-4 px-6 font-semibold text-gray-900 dark:text-white">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-blue-500 text-[20px]">description</span>
+                                    journal_submission_v1.docx
+                                </div>
+</td>
+<td class="py-4 px-6 text-gray-600 dark:text-gray-300 font-medium text-center md:text-left">
+                                210
+                            </td>
+<td class="py-4 px-6">
+<div class="flex flex-col sm:flex-row gap-2 sm:gap-3">
+<div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 text-xs font-semibold border border-green-100 dark:border-green-900/30">
+<div class="size-1.5 rounded-full bg-green-500"></div>
+                                        150 Checked
+                                    </div>
+<div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 text-xs font-semibold border border-red-100 dark:border-red-900/30">
+<div class="size-1.5 rounded-full bg-red-500"></div>
+                                        60 Issues
+                                    </div>
+</div>
+</td>
+<td class="py-4 px-6 text-right">
+<div class="flex items-center justify-end gap-2 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity">
+<button class="px-3 py-1.5 rounded-md text-primary dark:text-indigo-300 hover:bg-primary/5 dark:hover:bg-indigo-500/10 font-bold text-xs transition-colors border border-transparent hover:border-primary/10">
+                                        View Results
+                                    </button>
+<button class="size-8 flex items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors">
+<span class="material-symbols-outlined text-[20px]">more_vert</span>
+</button>
+</div>
+</td>
+</tr>
+<!-- Row 4 -->
+<tr class="group hover:bg-gray-50 dark:hover:bg-gray-800/40 transition-colors">
+<td class="py-4 px-6 text-gray-500 dark:text-gray-400 whitespace-nowrap">
+                                Sep 02, 2023 <span class="text-xs ml-1 opacity-70">11:20</span>
+</td>
+<td class="py-4 px-6 font-semibold text-gray-900 dark:text-white">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-gray-500 text-[20px]">article</span>
+                                    lab_notes_summary.txt
+                                </div>
+</td>
+<td class="py-4 px-6 text-gray-600 dark:text-gray-300 font-medium text-center md:text-left">
+                                45
+                            </td>
+<td class="py-4 px-6">
+<div class="flex flex-col sm:flex-row gap-2 sm:gap-3">
+<div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 text-xs font-semibold border border-green-100 dark:border-green-900/30">
+<div class="size-1.5 rounded-full bg-green-500"></div>
+                                        42 Checked
+                                    </div>
+<div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 text-xs font-semibold border border-red-100 dark:border-red-900/30">
+<div class="size-1.5 rounded-full bg-red-500"></div>
+                                        3 Issues
+                                    </div>
+</div>
+</td>
+<td class="py-4 px-6 text-right">
+<div class="flex items-center justify-end gap-2 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity">
+<button class="px-3 py-1.5 rounded-md text-primary dark:text-indigo-300 hover:bg-primary/5 dark:hover:bg-indigo-500/10 font-bold text-xs transition-colors border border-transparent hover:border-primary/10">
+                                        View Results
+                                    </button>
+<button class="size-8 flex items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors">
+<span class="material-symbols-outlined text-[20px]">more_vert</span>
+</button>
+</div>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<!-- Pagination -->
+<div class="px-6 py-4 border-t border-border-light dark:border-border-dark flex items-center justify-between bg-white dark:bg-surface-dark">
+<p class="text-sm text-gray-500 dark:text-gray-400">
+                    Showing <span class="font-bold text-gray-900 dark:text-white">1-4</span> of <span class="font-bold text-gray-900 dark:text-white">24</span> results
+                </p>
+<div class="flex gap-2">
+<button class="px-3 py-1.5 rounded-md border border-border-light dark:border-border-dark text-gray-600 dark:text-gray-300 text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors" disabled="">
+                        Previous
+                    </button>
+<button class="px-3 py-1.5 rounded-md border border-border-light dark:border-border-dark text-gray-600 dark:text-gray-300 text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                        Next
+                    </button>
+</div>
+</div>
+</div>
+</main>
+</body></html>

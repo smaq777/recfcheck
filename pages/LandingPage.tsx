@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { AppView } from '../types';
 
@@ -8,135 +7,386 @@ interface LandingPageProps {
 
 const LandingPage: React.FC<LandingPageProps> = ({ onNavigate }) => {
   return (
-    <div className="flex flex-col">
-      {/* Nav */}
-      <nav className="sticky top-0 z-50 w-full border-b border-border-light bg-white/80 backdrop-blur-md px-6 py-4">
-        <div className="mx-auto max-w-7xl flex items-center justify-between">
-          <div className="flex items-center gap-2 text-primary">
-            <div className="size-8 rounded bg-primary/10 text-primary flex items-center justify-center">
-              <span className="material-symbols-outlined text-[20px]">library_books</span>
+    <div className="relative flex flex-col min-h-screen w-full">
+      {/* Top Navigation */}
+      <header className="sticky top-0 z-50 w-full border-b border-border-light bg-white/80 backdrop-blur-md dark:bg-background-dark/80 dark:border-white/10">
+        <div className="mx-auto max-w-[1280px] px-4 sm:px-6 lg:px-8">
+          <div className="flex h-16 items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="flex items-center justify-center size-8 rounded bg-primary/10 text-primary">
+                <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>library_books</span>
+              </div>
+              <span className="text-lg font-extrabold tracking-tight text-text-main dark:text-white">RefCheck</span>
             </div>
-            <span className="text-lg font-extrabold tracking-tight">RefCheck</span>
-          </div>
-          <div className="hidden md:flex gap-8">
-            <a href="#" className="text-sm font-medium text-slate-500 hover:text-primary">Product</a>
-            <button onClick={() => onNavigate(AppView.PRICING)} className="text-sm font-medium text-slate-500 hover:text-primary">Pricing</button>
-            <a href="#" className="text-sm font-medium text-slate-500 hover:text-primary">Security</a>
-          </div>
-          <div className="flex items-center gap-3">
-            <button onClick={() => onNavigate(AppView.NEW_CHECK)} className="text-sm font-bold text-slate-900 px-3 py-2">Log In</button>
-            <button 
-              onClick={() => onNavigate(AppView.NEW_CHECK)}
-              className="rounded-lg bg-primary px-4 py-2 text-sm font-bold text-white shadow-md hover:bg-primary-hover transition-all"
-            >
-              Get Started
-            </button>
+            <nav className="hidden md:flex gap-8">
+              <a className="text-sm font-medium text-text-muted hover:text-primary transition-colors" href="#">Product</a>
+              <button onClick={() => onNavigate(AppView.PRICING)} className="text-sm font-medium text-text-muted hover:text-primary transition-colors">Pricing</button>
+              <a className="text-sm font-medium text-text-muted hover:text-primary transition-colors" href="#">Security</a>
+            </nav>
+            <div className="flex items-center gap-3">
+              <button onClick={() => onNavigate(AppView.LOGIN)} className="hidden sm:block text-sm font-bold text-text-main hover:text-primary transition-colors px-3 py-2">Log In</button>
+              <button
+                onClick={() => onNavigate(AppView.SIGNUP)}
+                className="flex items-center justify-center rounded-lg bg-primary px-4 py-2 text-sm font-bold text-white transition-all hover:bg-primary-dark shadow-subtle hover:shadow-card"
+              >
+                Get Started
+              </button>
+            </div>
           </div>
         </div>
-      </nav>
+      </header>
 
-      {/* Hero */}
-      <section className="relative overflow-hidden pt-20 pb-20 lg:pt-32 lg:pb-40 px-6">
-        <div className="mx-auto max-w-7xl relative z-10 grid lg:grid-cols-2 gap-16 items-center">
-          <div className="flex flex-col gap-6 max-w-2xl text-center lg:text-left">
-            <h1 className="text-5xl lg:text-7xl font-black text-slate-900 leading-[1.05] tracking-tight">
-              Verify your <br/>
-              <span className="text-primary">bibliography</span> in minutes
-            </h1>
-            <p className="text-lg text-slate-500 leading-relaxed mx-auto lg:mx-0 max-w-lg">
-              Ensure academic integrity with automated checks. Upload your BibTeX and instantly detect metadata mismatches, missing fields, and retracted citations.
-            </p>
-            <div className="flex flex-wrap justify-center lg:justify-start gap-4 pt-2">
-              <button 
-                onClick={() => onNavigate(AppView.NEW_CHECK)}
-                className="h-14 px-8 rounded-xl bg-primary text-white font-bold text-lg shadow-xl shadow-primary/20 hover:bg-primary-hover hover:-translate-y-1 transition-all flex items-center gap-2"
-              >
-                Get started <span className="material-symbols-outlined">arrow_forward</span>
-              </button>
-              <button 
-                onClick={() => onNavigate(AppView.REPORT)}
-                className="h-14 px-8 rounded-xl bg-white border border-border-light text-slate-900 font-bold text-lg hover:bg-slate-50 transition-all flex items-center gap-2"
-              >
-                <span className="material-symbols-outlined text-primary">description</span>
-                View sample report
-              </button>
-            </div>
-            <div className="flex items-center justify-center lg:justify-start gap-4 pt-4 text-sm text-slate-500">
-              <div className="flex -space-x-2">
-                {[1, 2, 3].map(i => (
-                  <div key={i} className="size-8 rounded-full border-2 border-white bg-slate-200" style={{ backgroundImage: `url('https://picsum.photos/id/${10 + i}/40/40')`, backgroundSize: 'cover' }} />
-                ))}
-              </div>
-              <p>Used by 10,000+ researchers</p>
-            </div>
-          </div>
-
-          <div className="relative group perspective-1000">
-            <div className="absolute -inset-4 bg-gradient-to-tr from-primary/10 via-primary/5 to-transparent rounded-full blur-3xl opacity-60 group-hover:opacity-100 transition-opacity"></div>
-            <div className="relative w-full max-w-[600px] bg-white rounded-2xl shadow-2xl border border-border-light overflow-hidden transform lg:rotate-2 group-hover:rotate-0 transition-transform duration-700">
-              <div className="h-10 bg-slate-50 border-b border-border-light flex items-center px-4 gap-2">
-                <div className="flex gap-1.5">
-                  <div className="size-2.5 rounded-full bg-red-400"></div>
-                  <div className="size-2.5 rounded-full bg-yellow-400"></div>
-                  <div className="size-2.5 rounded-full bg-green-400"></div>
+      <main className="flex-1">
+        {/* Hero Section */}
+        <section className="relative overflow-hidden pt-16 pb-20 lg:pt-24 lg:pb-32">
+          <div className="mx-auto max-w-[1280px] px-4 sm:px-6 lg:px-8 relative z-10">
+            <div className="grid lg:grid-cols-2 gap-12 lg:gap-8 items-center">
+              {/* Hero Content */}
+              <div className="flex flex-col gap-6 max-w-2xl">
+                <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-text-main dark:text-white leading-[1.1] tracking-tight">
+                  Verify your <br />
+                  <span className="text-primary dark:text-indigo-400">bibliography</span> in minutes
+                </h1>
+                <p className="text-lg text-text-muted dark:text-gray-400 leading-relaxed max-w-lg">
+                  Ensure academic integrity with automated checks. Upload your BibTeX and instantly detect metadata mismatches, missing fields, and retracted citations.
+                </p>
+                <div className="flex flex-wrap gap-4 pt-2">
+                  <button
+                    onClick={() => onNavigate(AppView.SIGNUP)}
+                    className="h-12 px-6 rounded-lg bg-primary text-white font-bold text-base shadow-lg shadow-primary/20 hover:bg-primary-dark hover:translate-y-[-1px] transition-all flex items-center gap-2"
+                  >
+                    <span>Get started</span>
+                    <span className="material-symbols-outlined text-sm">arrow_forward</span>
+                  </button>
+                  <button
+                    onClick={() => onNavigate(AppView.REPORT)}
+                    className="h-12 px-6 rounded-lg bg-white border border-border-light text-text-main font-bold text-base hover:bg-gray-50 hover:border-gray-300 transition-all flex items-center gap-2"
+                  >
+                    <span className="material-symbols-outlined text-primary">description</span>
+                    <span>View sample report</span>
+                  </button>
                 </div>
-                <div className="mx-auto text-[10px] font-mono font-medium text-slate-400 bg-white px-3 py-1 rounded border border-border-light">analysis_report_v2.bib</div>
               </div>
-              <div className="p-4 space-y-4">
-                {[
-                  { name: 'Smith et al.', status: 'Verified', color: 'text-success', bg: 'bg-green-100', icon: 'check' },
-                  { name: 'Doe & Johnson', status: 'Retracted', color: 'text-error', bg: 'bg-red-100', icon: 'close' },
-                  { name: 'Williams (2019)', status: 'Missing DOI', color: 'text-amber-600', bg: 'bg-amber-100', icon: 'priority_high' }
-                ].map((row, i) => (
-                  <div key={i} className="flex items-center justify-between p-3 rounded-lg border border-border-light hover:bg-slate-50 transition-colors">
-                    <div className="flex items-center gap-3">
-                      <div className={`size-8 rounded-full ${row.bg} flex items-center justify-center ${row.color}`}>
-                        <span className="material-symbols-outlined text-[16px]">{row.icon}</span>
+
+              {/* Hero UI Visual */}
+              <div className="relative w-full lg:h-auto flex justify-center lg:justify-end">
+                {/* Background decoration */}
+                <div className="absolute -z-10 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[120%] h-[120%] bg-gradient-to-tr from-primary/5 via-primary/10 to-transparent rounded-full blur-3xl opacity-60"></div>
+
+                {/* The Card */}
+                <div className="w-full max-w-[600px] bg-white dark:bg-[#232942] rounded-xl shadow-float border border-border-light dark:border-white/10 overflow-hidden transform transition-all hover:scale-[1.01] duration-500">
+                  {/* Fake Browser Header */}
+                  <div className="h-10 border-b border-border-light dark:border-white/10 flex items-center px-4 gap-2 bg-gray-50 dark:bg-[#1e2338]">
+                    <div className="flex gap-1.5">
+                      <div className="size-2.5 rounded-full bg-red-400"></div>
+                      <div className="size-2.5 rounded-full bg-yellow-400"></div>
+                      <div className="size-2.5 rounded-full bg-green-400"></div>
+                    </div>
+                    <div className="mx-auto text-xs font-medium text-text-muted bg-white dark:bg-white/5 px-3 py-1 rounded border border-border-light dark:border-white/5 shadow-sm">
+                      analysis_report_v2.bib
+                    </div>
+                  </div>
+
+                  {/* Table Header */}
+                  <div className="grid grid-cols-12 gap-4 px-4 py-3 bg-gray-50/50 dark:bg-white/5 border-b border-border-light dark:border-white/10 text-xs font-bold text-text-muted uppercase tracking-wider">
+                    <div className="col-span-1 text-center">Status</div>
+                    <div className="col-span-6">Reference</div>
+                    <div className="col-span-3">Source</div>
+                    <div className="col-span-2 text-right">Issues</div>
+                  </div>
+
+                  {/* Rows */}
+                  <div className="divide-y divide-border-light dark:divide-white/10">
+                    {/* Row 1: Valid */}
+                    <div className="grid grid-cols-12 gap-4 px-4 py-4 items-center hover:bg-background-light dark:hover:bg-white/5 transition-colors group">
+                      <div className="col-span-1 flex justify-center">
+                        <div className="size-6 rounded-full bg-green-100 dark:bg-green-900/30 text-success flex items-center justify-center">
+                          <span className="material-symbols-outlined text-[16px]">check</span>
+                        </div>
                       </div>
-                      <div>
-                        <p className="text-sm font-bold">{row.name}</p>
-                        <p className="text-[10px] text-slate-400">Reference analyzed 2m ago</p>
+                      <div className="col-span-6">
+                        <p className="text-sm font-bold text-text-main dark:text-white truncate">Smith et al. (2023)</p>
+                        <p className="text-xs text-text-muted truncate">Deep Learning in Genomics</p>
+                      </div>
+                      <div className="col-span-3">
+                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800 dark:bg-white/10 dark:text-gray-300">Nature</span>
+                      </div>
+                      <div className="col-span-2 text-right">
+                        <span className="text-xs font-medium text-success">Verified</span>
                       </div>
                     </div>
-                    <span className={`text-[10px] font-black uppercase tracking-widest ${row.color}`}>{row.status}</span>
+
+                    {/* Row 2: Retracted */}
+                    <div className="grid grid-cols-12 gap-4 px-4 py-4 items-center bg-red-50/50 dark:bg-red-900/10 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors">
+                      <div className="col-span-1 flex justify-center">
+                        <div className="size-6 rounded-full bg-red-100 dark:bg-red-900/30 text-error flex items-center justify-center">
+                          <span className="material-symbols-outlined text-[16px]">close</span>
+                        </div>
+                      </div>
+                      <div className="col-span-6">
+                        <p className="text-sm font-bold text-text-main dark:text-white truncate">Doe & Johnson (2021)</p>
+                        <p className="text-xs text-text-muted truncate">Adversarial Attacks on LLMs</p>
+                      </div>
+                      <div className="col-span-3">
+                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800 dark:bg-white/10 dark:text-gray-300">ArXiv</span>
+                      </div>
+                      <div className="col-span-2 text-right">
+                        <span className="inline-flex items-center gap-1 text-xs font-bold text-error bg-white dark:bg-background-dark px-2 py-1 rounded border border-red-100 dark:border-red-900/50 shadow-sm">
+                          <span className="material-symbols-outlined text-[12px]">warning</span> Retracted
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Row 3: Missing Fields */}
+                    <div className="grid grid-cols-12 gap-4 px-4 py-4 items-center hover:bg-background-light dark:hover:bg-white/5 transition-colors">
+                      <div className="col-span-1 flex justify-center">
+                        <div className="size-6 rounded-full bg-orange-100 dark:bg-orange-900/30 text-orange-600 flex items-center justify-center">
+                          <span className="material-symbols-outlined text-[16px]">priority_high</span>
+                        </div>
+                      </div>
+                      <div className="col-span-6">
+                        <p className="text-sm font-bold text-text-main dark:text-white truncate">Williams (2019)</p>
+                        <p className="text-xs text-text-muted truncate">CRISPR Editing Review</p>
+                      </div>
+                      <div className="col-span-3">
+                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800 dark:bg-white/10 dark:text-gray-300">Science</span>
+                      </div>
+                      <div className="col-span-2 text-right">
+                        <span className="text-xs font-medium text-orange-600">Missing DOI</span>
+                      </div>
+                    </div>
+
+                    {/* Row 4: Valid */}
+                    <div className="grid grid-cols-12 gap-4 px-4 py-4 items-center hover:bg-background-light dark:hover:bg-white/5 transition-colors">
+                      <div className="col-span-1 flex justify-center">
+                        <div className="size-6 rounded-full bg-green-100 dark:bg-green-900/30 text-success flex items-center justify-center">
+                          <span className="material-symbols-outlined text-[16px]">check</span>
+                        </div>
+                      </div>
+                      <div className="col-span-6">
+                        <p className="text-sm font-bold text-text-main dark:text-white truncate">Brown et al. (2020)</p>
+                        <p className="text-xs text-text-muted truncate">Language Models are Few-Shot Learners</p>
+                      </div>
+                      <div className="col-span-3">
+                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800 dark:bg-white/10 dark:text-gray-300">NeurIPS</span>
+                      </div>
+                      <div className="col-span-2 text-right">
+                        <span className="text-xs font-medium text-success">Verified</span>
+                      </div>
+                    </div>
                   </div>
-                ))}
+
+                  {/* Fake Pagination */}
+                  <div className="px-4 py-3 bg-gray-50 dark:bg-[#1e2338] border-t border-border-light dark:border-white/10 flex justify-between items-center text-xs text-text-muted">
+                    <span>Showing 4 of 128 references</span>
+                    <div className="flex gap-2">
+                      <div className="size-6 rounded bg-white dark:bg-white/10 border border-border-light dark:border-white/10 flex items-center justify-center cursor-pointer hover:border-primary"><span className="material-symbols-outlined text-[14px]">chevron_left</span></div>
+                      <div className="size-6 rounded bg-white dark:bg-white/10 border border-border-light dark:border-white/10 flex items-center justify-center cursor-pointer hover:border-primary"><span className="material-symbols-outlined text-[14px]">chevron_right</span></div>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* Social Proof */}
-      <section className="py-12 border-y border-border-light bg-slate-50/50">
-        <div className="max-w-7xl mx-auto px-6 text-center">
-          <p className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-8">Trusted by researchers at top institutions</p>
-          <div className="flex flex-wrap justify-center items-center gap-x-16 gap-y-8 opacity-40 grayscale">
-            <span className="text-2xl font-black font-serif">MIT</span>
-            <span className="text-2xl font-black font-serif">Stanford</span>
-            <span className="text-2xl font-black font-serif">Oxford</span>
-            <span className="text-2xl font-black font-serif">Cambridge</span>
-            <span className="text-2xl font-black font-serif">Harvard</span>
+        {/* Trust Section */}
+        <section className="border-y border-border-light bg-white dark:bg-background-dark dark:border-white/5 py-8">
+          <div className="mx-auto max-w-[1280px] px-4 sm:px-6 lg:px-8">
+            <p className="text-center text-sm font-semibold text-text-muted mb-6 uppercase tracking-wider">Trusted by researchers at top institutions</p>
+            <div className="flex flex-wrap justify-center gap-x-12 gap-y-8 items-center opacity-60 grayscale hover:grayscale-0 transition-all duration-500">
+              <span className="text-xl font-serif font-bold text-text-main dark:text-white">MIT</span>
+              <span className="text-xl font-serif font-bold text-text-main dark:text-white">Stanford</span>
+              <span className="text-xl font-serif font-bold text-text-main dark:text-white">Oxford</span>
+              <span className="text-xl font-serif font-bold text-text-main dark:text-white">Cambridge</span>
+              <span className="text-xl font-serif font-bold text-text-main dark:text-white">Harvard</span>
+              <span className="text-xl font-serif font-bold text-text-main dark:text-white">Berkeley</span>
+            </div>
+          </div>
+        </section>
+
+        {/* How It Works */}
+        <section className="py-20 lg:py-32 bg-background-light dark:bg-background-dark">
+          <div className="mx-auto max-w-[1280px] px-4 sm:px-6 lg:px-8">
+            <div className="text-center max-w-2xl mx-auto mb-16">
+              <h2 className="text-3xl font-extrabold text-text-main dark:text-white sm:text-4xl mb-4">
+                Three simple steps to accuracy
+              </h2>
+              <p className="text-lg text-text-muted">
+                Stop worrying about manual verification. Automate your bibliography check in seconds and publish with confidence.
+              </p>
+            </div>
+            <div className="grid md:grid-cols-3 gap-8 relative">
+              {/* Connector Line (Desktop) */}
+              <div className="hidden md:block absolute top-12 left-[16%] right-[16%] h-0.5 bg-gradient-to-r from-transparent via-border-light to-transparent dark:via-white/10 -z-0"></div>
+
+              {/* Step 1 */}
+              <div className="flex flex-col items-center text-center group">
+                <div className="relative flex items-center justify-center size-24 rounded-2xl bg-white dark:bg-[#232942] border border-border-light dark:border-white/10 shadow-card mb-6 group-hover:shadow-float group-hover:-translate-y-1 transition-all duration-300">
+                  <span className="material-symbols-outlined text-primary text-[40px]">cloud_upload</span>
+                  <div className="absolute -top-3 -right-3 size-8 rounded-full bg-primary text-white flex items-center justify-center text-sm font-bold border-4 border-background-light dark:border-background-dark">1</div>
+                </div>
+                <h3 className="text-xl font-bold text-text-main dark:text-white mb-2">Upload File</h3>
+                <p className="text-text-muted leading-relaxed px-4">
+                  Drag and drop your <code className="bg-gray-200 dark:bg-white/10 px-1 py-0.5 rounded text-xs font-mono">.bib</code> file directly into our secure platform. No account required for preview.
+                </p>
+              </div>
+
+              {/* Step 2 */}
+              <div className="flex flex-col items-center text-center group">
+                <div className="relative flex items-center justify-center size-24 rounded-2xl bg-white dark:bg-[#232942] border border-border-light dark:border-white/10 shadow-card mb-6 group-hover:shadow-float group-hover:-translate-y-1 transition-all duration-300">
+                  <span className="material-symbols-outlined text-primary text-[40px]">fact_check</span>
+                  <div className="absolute -top-3 -right-3 size-8 rounded-full bg-primary text-white flex items-center justify-center text-sm font-bold border-4 border-background-light dark:border-background-dark">2</div>
+                </div>
+                <h3 className="text-xl font-bold text-text-main dark:text-white mb-2">Auto-Verify</h3>
+                <p className="text-text-muted leading-relaxed px-4">
+                  Our engine cross-references your citations against 200M+ academic records from Crossref, OpenAlex, and Semantic Scholar.
+                </p>
+              </div>
+
+              {/* Step 3 */}
+              <div className="flex flex-col items-center text-center group">
+                <div className="relative flex items-center justify-center size-24 rounded-2xl bg-white dark:bg-[#232942] border border-border-light dark:border-white/10 shadow-card mb-6 group-hover:shadow-float group-hover:-translate-y-1 transition-all duration-300">
+                  <span className="material-symbols-outlined text-primary text-[40px]">download_for_offline</span>
+                  <div className="absolute -top-3 -right-3 size-8 rounded-full bg-primary text-white flex items-center justify-center text-sm font-bold border-4 border-background-light dark:border-background-dark">3</div>
+                </div>
+                <h3 className="text-xl font-bold text-text-main dark:text-white mb-2">Export Clean Data</h3>
+                <p className="text-text-muted leading-relaxed px-4">
+                  Download the corrected BibTeX file instantly with metadata fixed and warnings highlighted.
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Feature Grid */}
+        <section className="py-20 lg:py-24 bg-white dark:bg-[#1a1f30]">
+          <div className="mx-auto max-w-[1280px] px-4 sm:px-6 lg:px-8">
+            <div className="mb-12">
+              <h2 className="text-3xl font-extrabold text-text-main dark:text-white mb-4">
+                Built for rigorous academic standards
+              </h2>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {/* Feature 1 */}
+              <div className="p-6 rounded-xl border border-border-light dark:border-white/10 bg-background-light dark:bg-background-dark hover:border-primary/30 transition-colors group">
+                <div className="size-12 rounded-lg bg-white dark:bg-white/5 border border-border-light dark:border-white/10 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                  <span className="material-symbols-outlined text-primary">data_object</span>
+                </div>
+                <h3 className="text-lg font-bold text-text-main dark:text-white mb-2">Metadata Mismatch Detection</h3>
+                <p className="text-sm text-text-muted leading-relaxed">
+                  Identify inconsistencies between your reference and the official publisher record, such as incorrect years, misspelled authors, or wrong issue numbers.
+                </p>
+              </div>
+
+              {/* Feature 2 */}
+              <div className="p-6 rounded-xl border border-border-light dark:border-white/10 bg-background-light dark:bg-background-dark hover:border-primary/30 transition-colors group">
+                <div className="size-12 rounded-lg bg-white dark:bg-white/5 border border-border-light dark:border-white/10 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                  <span className="material-symbols-outlined text-primary">edit_off</span>
+                </div>
+                <h3 className="text-lg font-bold text-text-main dark:text-white mb-2">Fill Missing Fields</h3>
+                <p className="text-sm text-text-muted leading-relaxed">
+                  Automatically fetch missing DOIs, ISBNs, and page numbers. We complete your citations so you don't have to manually search databases.
+                </p>
+              </div>
+
+              {/* Feature 3 */}
+              <div className="p-6 rounded-xl border border-border-light dark:border-white/10 bg-background-light dark:bg-background-dark hover:border-primary/30 transition-colors group">
+                <div className="size-12 rounded-lg bg-white dark:bg-white/5 border border-border-light dark:border-white/10 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                  <span className="material-symbols-outlined text-error">gpp_bad</span>
+                </div>
+                <h3 className="text-lg font-bold text-text-main dark:text-white mb-2">Retraction Watch Integration</h3>
+                <p className="text-sm text-text-muted leading-relaxed">
+                  Never accidentally cite a retracted paper. We cross-check every entry against the Retraction Watch database to ensure validity.
+                </p>
+              </div>
+
+              {/* Feature 4 */}
+              <div className="p-6 rounded-xl border border-border-light dark:border-white/10 bg-background-light dark:bg-background-dark hover:border-primary/30 transition-colors group">
+                <div className="size-12 rounded-lg bg-white dark:bg-white/5 border border-border-light dark:border-white/10 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                  <span className="material-symbols-outlined text-primary">format_quote</span>
+                </div>
+                <h3 className="text-lg font-bold text-text-main dark:text-white mb-2">Style Compliance</h3>
+                <p className="text-sm text-text-muted leading-relaxed">
+                  Ensure your BibTeX output is perfectly formatted for LaTeX, preventing compile errors and messy bibliographies in your final PDF.
+                </p>
+              </div>
+
+              {/* Feature 5 */}
+              <div className="p-6 rounded-xl border border-border-light dark:border-white/10 bg-background-light dark:bg-background-dark hover:border-primary/30 transition-colors group">
+                <div className="size-12 rounded-lg bg-white dark:bg-white/5 border border-border-light dark:border-white/10 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                  <span className="material-symbols-outlined text-primary">lock</span>
+                </div>
+                <h3 className="text-lg font-bold text-text-main dark:text-white mb-2">Private & Secure</h3>
+                <p className="text-sm text-text-muted leading-relaxed">
+                  Your research data is yours. Files are processed in memory and never stored on our servers after the session ends.
+                </p>
+              </div>
+
+              {/* CTA Card */}
+              <div className="p-6 rounded-xl bg-primary text-white flex flex-col justify-center items-start shadow-card relative overflow-hidden group">
+                <div className="absolute -right-4 -top-4 size-24 bg-white/10 rounded-full blur-2xl group-hover:bg-white/20 transition-all"></div>
+                <h3 className="text-lg font-bold mb-2 relative z-10">Ready to verify?</h3>
+                <p className="text-sm text-blue-100 mb-6 relative z-10">Get a perfect bibliography in less than 2 minutes.</p>
+                <button
+                  onClick={() => onNavigate(AppView.SIGNUP)}
+                  className="px-4 py-2 bg-white text-primary rounded-lg text-sm font-bold hover:bg-gray-100 transition-colors w-full relative z-10"
+                >
+                  Start Checking Now
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
+      </main>
+
+      {/* Footer */}
+      <footer className="border-t border-border-light bg-background-light dark:bg-background-dark dark:border-white/10 pt-16 pb-8">
+        <div className="mx-auto max-w-[1280px] px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-12">
+            <div className="col-span-2 md:col-span-1">
+              <div className="flex items-center gap-2 mb-4">
+                <div className="flex items-center justify-center size-6 rounded bg-primary/10 text-primary">
+                  <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>library_books</span>
+                </div>
+                <span className="text-base font-extrabold text-text-main dark:text-white">RefCheck</span>
+              </div>
+              <p className="text-sm text-text-muted">The standard for bibliography verification in academic research.</p>
+            </div>
+            <div>
+              <h4 className="font-bold text-text-main dark:text-white mb-4">Product</h4>
+              <ul className="space-y-2 text-sm text-text-muted">
+                <li><a className="hover:text-primary transition-colors" href="#">Features</a></li>
+                <li><button onClick={() => onNavigate(AppView.PRICING)} className="hover:text-primary transition-colors">Pricing</button></li>
+                <li><a className="hover:text-primary transition-colors" href="#">API</a></li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="font-bold text-text-main dark:text-white mb-4">Resources</h4>
+              <ul className="space-y-2 text-sm text-text-muted">
+                <li><a className="hover:text-primary transition-colors" href="#">Documentation</a></li>
+                <li><a className="hover:text-primary transition-colors" href="#">Blog</a></li>
+                <li><a className="hover:text-primary transition-colors" href="#">Citation Guides</a></li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="font-bold text-text-main dark:text-white mb-4">Company</h4>
+              <ul className="space-y-2 text-sm text-text-muted">
+                <li><a className="hover:text-primary transition-colors" href="#">About</a></li>
+                <li><a className="hover:text-primary transition-colors" href="#">Contact</a></li>
+                <li><a className="hover:text-primary transition-colors" href="#">Privacy</a></li>
+              </ul>
+            </div>
+          </div>
+          <div className="border-t border-border-light dark:border-white/10 pt-8 flex flex-col md:flex-row justify-between items-center gap-4 text-sm text-text-muted">
+            <p>© 2024 RefCheck Inc. All rights reserved.</p>
+            <div className="flex gap-6">
+              <a className="hover:text-primary transition-colors" href="#">Privacy Policy</a>
+              <a className="hover:text-primary transition-colors" href="#">Terms of Service</a>
+            </div>
           </div>
         </div>
-      </section>
-
-      {/* CTA section */}
-      <section className="py-24 bg-white px-6">
-        <div className="max-w-7xl mx-auto rounded-3xl bg-primary p-12 lg:p-20 text-center relative overflow-hidden group">
-          <div className="absolute top-0 right-0 size-64 bg-white/5 rounded-full -mr-32 -mt-32 blur-3xl group-hover:bg-white/10 transition-all"></div>
-          <div className="relative z-10 flex flex-col items-center gap-6">
-            <h2 className="text-3xl lg:text-5xl font-black text-white tracking-tight">Ready for a perfect bibliography?</h2>
-            <p className="text-lg text-blue-100 max-w-xl">Join thousands of academics who publish with confidence using RefCheck's automated validation engine.</p>
-            <button 
-              onClick={() => onNavigate(AppView.NEW_CHECK)}
-              className="mt-4 px-10 py-4 rounded-xl bg-white text-primary font-black text-lg hover:scale-105 transition-all shadow-xl"
-            >
-              Start Checking Now
-            </button>
-          </div>
-        </div>
-      </section>
+      </footer>
     </div>
   );
 };

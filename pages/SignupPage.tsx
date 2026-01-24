@@ -1,20 +1,22 @@
 
 import React, { useState, useEffect } from 'react';
 import { AppView, UserProfile } from '../types';
-import { sendEmail } from '../services';
+import { signupWithEmail } from '../auth-client';
 
 interface SignupPageProps {
   onNavigate: (view: AppView) => void;
-  onAuthSuccess: (user: UserProfile) => void;
+  onAuthSuccess: (user: UserProfile, code?: string) => void;
 }
 
 const SignupPage: React.FC<SignupPageProps> = ({ onNavigate, onAuthSuccess }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [displayName, setDisplayName] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showVerificationNotice, setShowVerificationNotice] = useState(false);
 
   const [validations, setValidations] = useState({
     length: false,
@@ -32,7 +34,12 @@ const SignupPage: React.FC<SignupPageProps> = ({ onNavigate, onAuthSuccess }) =>
     });
   }, [password]);
 
-  const isFormValid = validations.length && validations.upper && validations.number && validations.special && password === confirmPassword && email;
+  const isFormValid = validations.length && validations.upper && validations.number && validations.special && password === confirmPassword && email && displayName;
+
+  const handleGoogleSignup = () => {
+    // TODO: Implement Google OAuth signup
+    console.log('Google signup not yet implemented');
+  };
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -41,33 +48,19 @@ const SignupPage: React.FC<SignupPageProps> = ({ onNavigate, onAuthSuccess }) =>
     setError(null);
     
     try {
-      // 1. Send Verification Email via Resend
-      const verificationHtml = `
-        <div style="font-family: sans-serif; padding: 20px; color: #333;">
-          <h2 style="color: #2c346d;">Verify your RefCheck account</h2>
-          <p>Welcome to RefCheck! Please verify your email to start auditing your bibliography.</p>
-          <div style="margin: 30px 0;">
-            <a href="${window.location.origin}?verify=true" style="background-color: #2c346d; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: bold;">Verify Email Address</a>
-          </div>
-          <p style="font-size: 12px; color: #666;">If you didn't create an account, you can safely ignore this email.</p>
-        </div>
-      `;
+      const authUser = await signupWithEmail(email, password, displayName);
       
-      const emailRes = await sendEmail(email, "Verify your RefCheck account", verificationHtml);
+      setShowVerificationNotice(true);
       
-      if (!emailRes.success) {
-        throw new Error("Failed to send verification email. Please check your address.");
-      }
-
-      // 2. Create User Profile
-      const mockUser: UserProfile = {
-        uid: `user_${Math.random().toString(36).substr(2, 9)}`,
-        email: email,
-        displayName: null,
-        photoURL: null,
+      // Create user profile
+      const user: UserProfile = {
+        uid: authUser.id,
+        email: authUser.email,
+        displayName: authUser.displayName,
+        photoURL: authUser.photoURL,
         provider: 'email',
         emailVerified: false,
-        createdAt: Date.now(),
+        createdAt: authUser.createdAt,
         settings: {
           strictness: 'standard',
           autoFill: true,
@@ -77,44 +70,20 @@ const SignupPage: React.FC<SignupPageProps> = ({ onNavigate, onAuthSuccess }) =>
         subscription: {
           plan: 'free',
           checksThisMonth: 0,
-          maxChecksPerMonth: 10
+          maxChecksPerMonth: 5
         }
       };
       
-      onAuthSuccess(mockUser);
+      console.log('[SignupPage] authUser object:', authUser);
+      console.log('[SignupPage] authUser.verificationCode:', authUser.verificationCode);
+      console.log('[SignupPage] Calling onAuthSuccess with code:', authUser.verificationCode);
+      onAuthSuccess(user, authUser.verificationCode);
     } catch (err: any) {
-      setError(err.message || "An error occurred during signup.");
+      setError(err.message || 'Signup failed. Please try again.');
+      console.error('Signup error:', err);
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const handleGoogleSignup = () => {
-    setIsLoading(true);
-    setTimeout(() => {
-      const mockUser: UserProfile = {
-        uid: 'google_new',
-        email: 'user@gmail.com',
-        displayName: 'New Researcher',
-        photoURL: null,
-        provider: 'google',
-        emailVerified: true,
-        createdAt: Date.now(),
-        settings: {
-          strictness: 'standard',
-          autoFill: true,
-          dedupe: true,
-          dataRetention: 24
-        },
-        subscription: {
-          plan: 'free',
-          checksThisMonth: 0,
-          maxChecksPerMonth: 10
-        }
-      };
-      setIsLoading(false);
-      onAuthSuccess(mockUser);
-    }, 1500);
   };
 
   return (
@@ -151,6 +120,11 @@ const SignupPage: React.FC<SignupPageProps> = ({ onNavigate, onAuthSuccess }) =>
           )}
 
           <form onSubmit={handleSignup} className="space-y-6">
+            <div className="space-y-2">
+              <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Full Name</label>
+              <input type="text" required value={displayName} onChange={(e) => setDisplayName(e.target.value)} placeholder="Your name" className="w-full h-12 px-4 rounded-xl border-border-light bg-slate-50 focus:bg-white focus:ring-2 focus:ring-primary/20 transition-all font-medium" />
+            </div>
+
             <div className="space-y-2">
               <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Email Address</label>
               <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} className="w-full h-12 px-4 rounded-xl border-border-light bg-slate-50 focus:bg-white focus:ring-2 focus:ring-primary/20 transition-all font-medium" />

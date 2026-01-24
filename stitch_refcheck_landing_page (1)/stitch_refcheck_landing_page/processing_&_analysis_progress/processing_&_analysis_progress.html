@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Processing &amp; Analysis Progress - BiblioCheck</title>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#2c346d",
+                        "primary-hover": "#3a448b",
+                        "background-light": "#f8fafb",
+                        "background-dark": "#191d2e",
+                        "card-light": "#ffffff",
+                        "card-dark": "#22273d",
+                        "border-light": "#eaebf0",
+                        "border-dark": "#2e354f",
+                    },
+                    fontFamily: {
+                        "display": ["Manrope", "sans-serif"],
+                        "mono": ["ui-monospace", "SFMono-Regular", "Menlo", "Monaco", "Consolas", "Liberation Mono", "Courier New", "monospace"]
+                    },
+                    borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "2xl": "1rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        /* Custom pulsing animation for the active step */
+        @keyframes subtle-pulse {
+            0% { box-shadow: 0 0 0 0 rgba(44, 52, 109, 0.4); }
+            70% { box-shadow: 0 0 0 6px rgba(44, 52, 109, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(44, 52, 109, 0); }
+        }
+        .active-pulse {
+            animation: subtle-pulse 2s infinite;
+        }
+        /* Custom scrollbar for logs */
+        .logs-scroll::-webkit-scrollbar {
+            width: 6px;
+        }
+        .logs-scroll::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .logs-scroll::-webkit-scrollbar-thumb {
+            background-color: #cbd5e1;
+            border-radius: 20px;
+        }
+        .dark .logs-scroll::-webkit-scrollbar-thumb {
+            background-color: #475569;
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-slate-100 antialiased overflow-x-hidden transition-colors duration-300">
+<div class="min-h-screen flex flex-col">
+<!-- Top Navigation -->
+<header class="sticky top-0 z-50 bg-white/80 dark:bg-card-dark/80 backdrop-blur-md border-b border-border-light dark:border-border-dark px-6 py-3">
+<div class="max-w-7xl mx-auto flex items-center justify-between">
+<div class="flex items-center gap-3 text-primary dark:text-indigo-400">
+<div class="size-8">
+<svg class="w-full h-full" fill="none" viewbox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+<g clip-path="url(#clip0_6_543)">
+<path d="M42.1739 20.1739L27.8261 5.82609C29.1366 7.13663 28.3989 10.1876 26.2002 13.7654C24.8538 15.9564 22.9595 18.3449 20.6522 20.6522C18.3449 22.9595 15.9564 24.8538 13.7654 26.2002C10.1876 28.3989 7.13663 29.1366 5.82609 27.8261L20.1739 42.1739C21.4845 43.4845 24.5355 42.7467 28.1133 40.548C30.3042 39.2016 32.6927 37.3073 35 35C37.3073 32.6927 39.2016 30.3042 40.548 28.1133C42.7467 24.5355 43.4845 21.4845 42.1739 20.1739Z" fill="currentColor"></path>
+<path clip-rule="evenodd" d="M7.24189 26.4066C7.31369 26.4411 7.64204 26.5637 8.52504 26.3738C9.59462 26.1438 11.0343 25.5311 12.7183 24.4963C14.7583 23.2426 17.0256 21.4503 19.238 19.238C21.4503 17.0256 23.2426 14.7583 24.4963 12.7183C25.5311 11.0343 26.1438 9.59463 26.3738 8.52504C26.5637 7.64204 26.4411 7.31369 26.4066 7.24189C26.345 7.21246 26.143 7.14535 25.6664 7.1918C24.9745 7.25925 23.9954 7.5498 22.7699 8.14278C20.3369 9.32007 17.3369 11.4915 14.4142 14.4142C11.4915 17.3369 9.32007 20.3369 8.14278 22.7699C7.5498 23.9954 7.25925 24.9745 7.1918 25.6664C7.14534 26.143 7.21246 26.345 7.24189 26.4066ZM29.9001 10.7285C29.4519 12.0322 28.7617 13.4172 27.9042 14.8126C26.465 17.1544 24.4686 19.6641 22.0664 22.0664C19.6641 24.4686 17.1544 26.465 14.8126 27.9042C13.4172 28.7617 12.0322 29.4519 10.7285 29.9001L21.5754 40.747C21.6001 40.7606 21.8995 40.931 22.8729 40.7217C23.9424 40.4916 25.3821 39.879 27.0661 38.8441C29.1062 37.5904 31.3734 35.7982 33.5858 33.5858C35.7982 31.3734 37.5904 29.1062 38.8441 27.0661C39.879 25.3821 40.4916 23.9425 40.7216 22.8729C40.931 21.8995 40.7606 21.6001 40.747 21.5754L29.9001 10.7285ZM29.2403 4.41187L43.5881 18.7597C44.9757 20.1473 44.9743 22.1235 44.6322 23.7139C44.2714 25.3919 43.4158 27.2666 42.252 29.1604C40.8128 31.5022 38.8165 34.012 36.4142 36.4142C34.012 38.8165 31.5022 40.8128 29.1604 42.252C27.2666 43.4158 25.3919 44.2714 23.7139 44.6322C22.1235 44.9743 20.1473 44.9757 18.7597 43.5881L4.41187 29.2403C3.29027 28.1187 3.08209 26.5973 3.21067 25.2783C3.34099 23.9415 3.8369 22.4852 4.54214 21.0277C5.96129 18.0948 8.43335 14.7382 11.5858 11.5858C14.7382 8.43335 18.0948 5.9613 21.0277 4.54214C22.4852 3.8369 23.9415 3.34099 25.2783 3.21067C26.5973 3.08209 28.1187 3.29028 29.2403 4.41187Z" fill="currentColor" fill-rule="evenodd"></path>
+</g>
+<defs>
+<clippath id="clip0_6_543"><rect fill="white" height="48" width="48"></rect></clippath>
+</defs>
+</svg>
+</div>
+<h2 class="text-[#111218] dark:text-white text-lg font-bold leading-tight tracking-[-0.015em]">BiblioCheck</h2>
+</div>
+<div class="flex items-center gap-4">
+<div class="h-9 w-9 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden border border-border-light dark:border-border-dark flex items-center justify-center">
+<span class="material-symbols-outlined text-slate-500 dark:text-slate-400">person</span>
+</div>
+</div>
+</div>
+</header>
+<main class="flex-1 max-w-7xl w-full mx-auto px-6 py-8">
+<!-- Global Status Header -->
+<div class="bg-card-light dark:bg-card-dark rounded-2xl border border-border-light dark:border-border-dark shadow-sm p-6 lg:p-8 mb-8">
+<div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+<div>
+<h1 class="text-3xl md:text-4xl font-bold text-[#111218] dark:text-white leading-tight tracking-tight mb-2">Analyzing 214 References</h1>
+<p class="text-[#5f6486] dark:text-slate-400 font-medium flex items-center gap-2">
+<span class="material-symbols-outlined text-sm">schedule</span>
+                            ETA: <span class="font-mono text-primary dark:text-indigo-300 bg-primary/5 dark:bg-indigo-500/10 px-1.5 py-0.5 rounded text-sm">~45 seconds remaining</span>
+</p>
+</div>
+<button class="flex items-center gap-2 px-5 py-2.5 rounded-lg border border-border-light dark:border-border-dark bg-background-light dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-[#111218] dark:text-white text-sm font-bold transition-colors">
+<span class="material-symbols-outlined text-lg">pause</span>
+                        Pause Check
+                    </button>
+</div>
+<!-- Progress Bar Area -->
+<div class="mb-8">
+<div class="flex justify-between items-end mb-2">
+<span class="text-sm font-semibold text-[#5f6486] dark:text-slate-400 uppercase tracking-wider">Total Progress</span>
+<span class="text-5xl font-extrabold text-primary dark:text-indigo-400 tracking-tight">68%</span>
+</div>
+<div class="h-4 w-full bg-[#f0f2f5] dark:bg-slate-700/50 rounded-full overflow-hidden">
+<div class="h-full bg-primary dark:bg-indigo-500 w-[68%] rounded-full transition-all duration-700 ease-out shadow-[0_0_10px_rgba(44,52,109,0.3)]">
+<div class="w-full h-full opacity-20 bg-[linear-gradient(45deg,rgba(255,255,255,0.15)_25%,transparent_25%,transparent_50%,rgba(255,255,255,0.15)_50%,rgba(255,255,255,0.15)_75%,transparent_75%,transparent)] bg-[length:1rem_1rem]"></div>
+</div>
+</div>
+</div>
+<!-- Micro Stats Grid -->
+<div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+<div class="bg-background-light dark:bg-[#2c324a] rounded-xl p-5 border border-border-light dark:border-border-dark flex flex-col gap-1">
+<div class="flex items-center gap-2 mb-1">
+<span class="material-symbols-outlined text-emerald-500 text-lg">check_circle</span>
+<span class="text-sm font-medium text-[#5f6486] dark:text-slate-400">Verified</span>
+</div>
+<span class="text-3xl font-bold text-[#111218] dark:text-white">145</span>
+</div>
+<div class="bg-background-light dark:bg-[#2c324a] rounded-xl p-5 border border-border-light dark:border-border-dark flex flex-col gap-1">
+<div class="flex items-center gap-2 mb-1">
+<span class="material-symbols-outlined text-amber-500 text-lg">warning</span>
+<span class="text-sm font-medium text-[#5f6486] dark:text-slate-400">Potential Duplicates</span>
+</div>
+<span class="text-3xl font-bold text-[#111218] dark:text-white">12</span>
+</div>
+<div class="bg-background-light dark:bg-[#2c324a] rounded-xl p-5 border border-border-light dark:border-border-dark flex flex-col gap-1">
+<div class="flex items-center gap-2 mb-1">
+<span class="material-symbols-outlined text-rose-500 text-lg">error</span>
+<span class="text-sm font-medium text-[#5f6486] dark:text-slate-400">Critical Errors</span>
+</div>
+<span class="text-3xl font-bold text-[#111218] dark:text-white">0</span>
+</div>
+</div>
+</div>
+<!-- Main Split Layout -->
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-8 h-auto lg:h-[600px]">
+<!-- Left Column: Roadmap Stepper -->
+<div class="lg:col-span-4 bg-card-light dark:bg-card-dark rounded-2xl border border-border-light dark:border-border-dark shadow-sm p-6 flex flex-col">
+<h3 class="text-lg font-bold text-[#111218] dark:text-white mb-6 flex items-center gap-2">
+<span class="material-symbols-outlined text-primary dark:text-indigo-400">alt_route</span>
+                        Process Roadmap
+                    </h3>
+<div class="flex flex-col relative h-full">
+<!-- Connecting Line Background -->
+<div class="absolute left-[19px] top-4 bottom-8 w-0.5 bg-border-light dark:bg-border-dark -z-10"></div>
+<!-- Step 1: Done -->
+<div class="flex gap-4 mb-8 group">
+<div class="relative flex-shrink-0 z-10">
+<div class="w-10 h-10 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center border-2 border-emerald-500 text-emerald-600 dark:text-emerald-400 shadow-sm">
+<span class="material-symbols-outlined text-xl font-bold">check</span>
+</div>
+</div>
+<div class="pt-1.5">
+<h4 class="text-base font-bold text-[#111218] dark:text-white">Parsing</h4>
+<p class="text-sm text-emerald-600 dark:text-emerald-400 font-medium">Completed</p>
+</div>
+</div>
+<!-- Step 2: Done -->
+<div class="flex gap-4 mb-8 group">
+<div class="relative flex-shrink-0 z-10">
+<div class="w-10 h-10 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center border-2 border-emerald-500 text-emerald-600 dark:text-emerald-400 shadow-sm">
+<span class="material-symbols-outlined text-xl font-bold">check</span>
+</div>
+</div>
+<div class="pt-1.5">
+<h4 class="text-base font-bold text-[#111218] dark:text-white">Normalizing</h4>
+<p class="text-sm text-emerald-600 dark:text-emerald-400 font-medium">Completed</p>
+</div>
+</div>
+<!-- Step 3: In Progress (Active) -->
+<div class="flex gap-4 mb-8 group">
+<div class="relative flex-shrink-0 z-10">
+<div class="active-pulse w-10 h-10 rounded-full bg-primary text-white flex items-center justify-center border-2 border-primary shadow-lg ring-4 ring-primary/10">
+<span class="material-symbols-outlined text-xl animate-spin">sync</span>
+</div>
+</div>
+<div class="pt-1.5">
+<h4 class="text-base font-bold text-primary dark:text-indigo-400">Matching</h4>
+<p class="text-sm text-[#5f6486] dark:text-slate-400 animate-pulse">Querying CrossRef &amp; PubMed...</p>
+</div>
+</div>
+<!-- Step 4: Pending -->
+<div class="flex gap-4 mb-8 group opacity-50">
+<div class="relative flex-shrink-0 z-10">
+<div class="w-10 h-10 rounded-full bg-white dark:bg-slate-800 flex items-center justify-center border-2 border-border-light dark:border-slate-600 text-slate-300 dark:text-slate-500">
+<span class="material-symbols-outlined text-xl">radio_button_unchecked</span>
+</div>
+</div>
+<div class="pt-1.5">
+<h4 class="text-base font-bold text-[#111218] dark:text-slate-300">Scoring</h4>
+<p class="text-sm text-[#5f6486] dark:text-slate-500">Pending</p>
+</div>
+</div>
+<!-- Step 5: Pending -->
+<div class="flex gap-4 group opacity-50">
+<div class="relative flex-shrink-0 z-10">
+<div class="w-10 h-10 rounded-full bg-white dark:bg-slate-800 flex items-center justify-center border-2 border-border-light dark:border-slate-600 text-slate-300 dark:text-slate-500">
+<span class="material-symbols-outlined text-xl">radio_button_unchecked</span>
+</div>
+</div>
+<div class="pt-1.5">
+<h4 class="text-base font-bold text-[#111218] dark:text-slate-300">Building Report</h4>
+<p class="text-sm text-[#5f6486] dark:text-slate-500">Pending</p>
+</div>
+</div>
+</div>
+</div>
+<!-- Right Column: Engine Room (Logs) -->
+<div class="lg:col-span-8 bg-card-light dark:bg-card-dark rounded-2xl border border-border-light dark:border-border-dark shadow-sm p-0 flex flex-col overflow-hidden relative">
+<div class="p-6 border-b border-border-light dark:border-border-dark bg-[#fafbfd] dark:bg-[#252a40] flex justify-between items-center">
+<h3 class="text-lg font-bold text-[#111218] dark:text-white flex items-center gap-2">
+<span class="material-symbols-outlined text-[#5f6486] dark:text-slate-400">terminal</span>
+                            Live Engine Room
+                        </h3>
+<div class="flex items-center gap-2">
+<span class="flex h-2 w-2 relative">
+<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+<span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+</span>
+<span class="text-xs font-mono text-[#5f6486] dark:text-slate-400 uppercase tracking-wider">Live Feed</span>
+</div>
+</div>
+<div class="flex-1 overflow-y-auto p-6 logs-scroll bg-white dark:bg-[#22273d] font-mono text-sm">
+<div class="flex flex-col gap-4">
+<!-- Log Item -->
+<div class="flex gap-4 items-start group">
+<span class="text-[#5f6486] dark:text-slate-500 text-xs mt-1 w-20 flex-shrink-0">[10:42:05]</span>
+<div class="flex-1 p-3 bg-amber-50 dark:bg-amber-900/10 border border-amber-100 dark:border-amber-800/30 rounded-lg flex gap-3 items-center">
+<span class="material-symbols-outlined text-amber-500 text-sm">warning</span>
+<span class="text-[#111218] dark:text-amber-100">Found potential duplicates: 12 references flagged for manual review.</span>
+</div>
+</div>
+<!-- Log Item -->
+<div class="flex gap-4 items-start group">
+<span class="text-[#5f6486] dark:text-slate-500 text-xs mt-1 w-20 flex-shrink-0">[10:42:01]</span>
+<div class="flex-1 p-3 bg-[#f8fafb] dark:bg-slate-800/50 border border-border-light dark:border-slate-700/50 rounded-lg flex gap-3 items-center">
+<span class="material-symbols-outlined text-emerald-500 text-sm">check</span>
+<span class="text-[#111218] dark:text-slate-300">Resolved DOI for 82 references successfully.</span>
+</div>
+</div>
+<!-- Log Item -->
+<div class="flex gap-4 items-start group">
+<span class="text-[#5f6486] dark:text-slate-500 text-xs mt-1 w-20 flex-shrink-0">[10:41:55]</span>
+<div class="flex-1 p-3 bg-[#f8fafb] dark:bg-slate-800/50 border border-border-light dark:border-slate-700/50 rounded-lg flex gap-3 items-center">
+<span class="material-symbols-outlined text-blue-500 text-sm">info</span>
+<span class="text-[#111218] dark:text-slate-300">Fetching metadata from CrossRef API (Batch 3/5)...</span>
+</div>
+</div>
+<!-- Log Item -->
+<div class="flex gap-4 items-start group">
+<span class="text-[#5f6486] dark:text-slate-500 text-xs mt-1 w-20 flex-shrink-0">[10:41:45]</span>
+<div class="flex-1 p-3 bg-[#f8fafb] dark:bg-slate-800/50 border border-border-light dark:border-slate-700/50 rounded-lg flex gap-3 items-center">
+<span class="material-symbols-outlined text-emerald-500 text-sm">check</span>
+<span class="text-[#111218] dark:text-slate-300">Normalization complete. 214 references processed.</span>
+</div>
+</div>
+<!-- Log Item -->
+<div class="flex gap-4 items-start group">
+<span class="text-[#5f6486] dark:text-slate-500 text-xs mt-1 w-20 flex-shrink-0">[10:41:12]</span>
+<div class="flex-1 p-3 bg-[#f8fafb] dark:bg-slate-800/50 border border-border-light dark:border-slate-700/50 rounded-lg flex gap-3 items-center">
+<span class="material-symbols-outlined text-blue-500 text-sm">play_arrow</span>
+<span class="text-[#111218] dark:text-slate-300">Analysis started. Parsing input file "manuscript_v4.pdf".</span>
+</div>
+</div>
+<!-- Skeleton Log Item (Simulating next line appearing) -->
+<div class="flex gap-4 items-start group animate-pulse opacity-60">
+<div class="h-4 bg-slate-200 dark:bg-slate-700 rounded w-20 mt-1"></div>
+<div class="flex-1 p-3 bg-white dark:bg-transparent border border-transparent rounded-lg flex gap-3 items-center">
+<div class="h-4 w-4 bg-slate-200 dark:bg-slate-700 rounded-full"></div>
+<div class="h-4 bg-slate-200 dark:bg-slate-700 rounded w-2/3"></div>
+</div>
+</div>
+</div>
+</div>
+<!-- Bottom Gradient Fade -->
+<div class="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-card-light dark:from-card-dark to-transparent pointer-events-none"></div>
+</div>
+</div>
+</main>
+</div>
+</body></html>

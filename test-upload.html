@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RefCheck Upload Test</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            background: #f5f5f5;
+            padding: 20px;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #1e3a5f;
+            margin-bottom: 20px;
+            font-size: 24px;
+        }
+        .section {
+            margin-bottom: 30px;
+        }
+        .section h2 {
+            color: #333;
+            font-size: 16px;
+            margin-bottom: 15px;
+            border-bottom: 2px solid #1e3a5f;
+            padding-bottom: 10px;
+        }
+        .log-box {
+            background: #1e3a5f;
+            color: #00ff00;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            padding: 15px;
+            border-radius: 8px;
+            max-height: 300px;
+            overflow-y: auto;
+            line-height: 1.4;
+            margin-bottom: 15px;
+        }
+        .log-entry {
+            margin-bottom: 5px;
+        }
+        .log-error {
+            color: #ff6b6b;
+        }
+        .log-success {
+            color: #51cf66;
+        }
+        .log-info {
+            color: #74c0fc;
+        }
+        button {
+            background: #1e3a5f;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: background 0.2s;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+        button:hover {
+            background: #2d4a6f;
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        input[type="file"] {
+            margin: 15px 0;
+        }
+        .status {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            font-weight: 600;
+        }
+        .status.success {
+            background: #d3f9d8;
+            color: #2f5233;
+            border: 1px solid #51cf66;
+        }
+        .status.error {
+            background: #ffe0e0;
+            color: #5f2120;
+            border: 1px solid #ff6b6b;
+        }
+        .status.info {
+            background: #e3f2fd;
+            color: #1e3a5f;
+            border: 1px solid #74c0fc;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 RefCheck Upload Debug Test</h1>
+        
+        <div class="section">
+            <h2>1️⃣ Session Check</h2>
+            <button onclick="checkSession()">Check Current Session</button>
+            <button onclick="clearSession()">Clear Session (Logout)</button>
+            <div id="sessionLog" class="log-box"></div>
+        </div>
+
+        <div class="section">
+            <h2>2️⃣ Auth Headers Debug</h2>
+            <button onclick="checkAuthHeaders()">Get Auth Headers</button>
+            <div id="authLog" class="log-box"></div>
+        </div>
+
+        <div class="section">
+            <h2>3️⃣ File Upload Test</h2>
+            <input type="file" id="fileInput" accept=".bib,.pdf">
+            <button onclick="uploadFile()">Test Upload</button>
+            <div id="uploadStatus"></div>
+            <div id="uploadLog" class="log-box"></div>
+        </div>
+
+        <div class="section">
+            <h2>4️⃣ Console Output (Check DevTools Console Too!)</h2>
+            <button onclick="clearAllLogs()">Clear All Logs</button>
+            <div id="mainLog" class="log-box"></div>
+        </div>
+    </div>
+
+    <script>
+        // Logging utility
+        const logs = {
+            session: [],
+            auth: [],
+            upload: [],
+            main: []
+        };
+
+        function log(type, message, logType = 'info') {
+            const timestamp = new Date().toLocaleTimeString('en-US', { 
+                hour12: false, 
+                hour: '2-digit', 
+                minute: '2-digit', 
+                second: '2-digit' 
+            });
+            
+            const entry = `[${timestamp}] ${message}`;
+            const el = document.getElementById(type + 'Log');
+            
+            if (el) {
+                const logDiv = document.createElement('div');
+                logDiv.className = 'log-entry';
+                if (logType === 'error') logDiv.className += ' log-error';
+                else if (logType === 'success') logDiv.className += ' log-success';
+                else if (logType === 'info') logDiv.className += ' log-info';
+                logDiv.textContent = entry;
+                el.appendChild(logDiv);
+                el.scrollTop = el.scrollHeight;
+            }
+
+            console.log(entry);
+            logs[type].push(entry);
+        }
+
+        function checkSession() {
+            log('session', '🔍 Checking session...', 'info');
+            
+            const stored = localStorage.getItem('refcheck_user');
+            if (!stored) {
+                log('session', '❌ No user in localStorage', 'error');
+                showStatus('session', 'No session found. Please login first.', 'error');
+                return;
+            }
+
+            try {
+                const user = JSON.parse(stored);
+                log('session', '✅ User found in localStorage:', 'success');
+                log('session', `  ID: ${user.id || 'MISSING'}`, 'success');
+                log('session', `  Email: ${user.email || 'MISSING'}`, 'success');
+                log('session', `  Name: ${user.displayName || 'N/A'}`, 'success');
+                log('session', `  EmailVerified: ${user.emailVerified}`, 'success');
+                
+                if (!user.id) {
+                    log('session', '⚠️  WARNING: user.id is missing!', 'error');
+                    showStatus('session', 'User has no ID - auth will fail!', 'error');
+                } else {
+                    showStatus('session', `Logged in as: ${user.email}`, 'success');
+                }
+            } catch (e) {
+                log('session', `❌ Error parsing user: ${e.message}`, 'error');
+                showStatus('session', 'Session data is corrupted', 'error');
+            }
+        }
+
+        function checkAuthHeaders() {
+            log('auth', '🔍 Checking auth headers...', 'info');
+            
+            const stored = localStorage.getItem('refcheck_user');
+            if (!stored) {
+                log('auth', '❌ No user in localStorage', 'error');
+                showStatus('auth', 'No session - cannot generate headers', 'error');
+                return;
+            }
+
+            try {
+                const user = JSON.parse(stored);
+                
+                if (!user.id || !user.email) {
+                    log('auth', '❌ User missing id or email', 'error');
+                    log('auth', `  id: ${user.id}`, 'error');
+                    log('auth', `  email: ${user.email}`, 'error');
+                    showStatus('auth', 'Invalid user data', 'error');
+                    return;
+                }
+
+                const headers = {
+                    'Authorization': `Bearer ${user.id}`,
+                    'X-User-ID': user.id
+                };
+
+                log('auth', '✅ Auth headers generated:', 'success');
+                log('auth', `  Authorization: Bearer ${user.id}`, 'success');
+                log('auth', `  X-User-ID: ${user.id}`, 'success');
+                showStatus('auth', 'Headers ready for upload', 'success');
+            } catch (e) {
+                log('auth', `❌ Error: ${e.message}`, 'error');
+                showStatus('auth', 'Error generating headers', 'error');
+            }
+        }
+
+        async function uploadFile() {
+            const fileInput = document.getElementById('fileInput');
+            const file = fileInput.files[0];
+
+            if (!file) {
+                showStatus('upload', 'Please select a file first', 'error');
+                return;
+            }
+
+            log('upload', `📁 Selected file: ${file.name} (${file.size} bytes)`, 'info');
+
+            // Check session first
+            const stored = localStorage.getItem('refcheck_user');
+            if (!stored) {
+                log('upload', '❌ No user session - login first!', 'error');
+                showStatus('upload', 'No session - please login', 'error');
+                return;
+            }
+
+            try {
+                const user = JSON.parse(stored);
+                if (!user.id) {
+                    throw new Error('User ID is missing');
+                }
+
+                log('upload', `🔐 Using user ID: ${user.id}`, 'info');
+
+                // Prepare form data
+                const formData = new FormData();
+                formData.append('file', file);
+                formData.append('strictness', 'STANDARD');
+                formData.append('duplicateDetection', 'true');
+                formData.append('autoFillFields', 'true');
+                formData.append('outputFormat', 'BibTeX .bib');
+
+                // Prepare headers
+                const headers = {
+                    'Authorization': `Bearer ${user.id}`,
+                    'X-User-ID': user.id
+                };
+
+                log('upload', '📤 Sending request...', 'info');
+                log('upload', `  Authorization: Bearer ${user.id}`, 'info');
+                log('upload', `  X-User-ID: ${user.id}`, 'info');
+
+                const response = await fetch('/api/analyze', {
+                    method: 'POST',
+                    body: formData,
+                    headers: headers
+                });
+
+                log('upload', `📊 Response status: ${response.status}`, 'info');
+
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({ error: response.statusText }));
+                    log('upload', `❌ Upload failed: ${JSON.stringify(errorData)}`, 'error');
+                    showStatus('upload', `Upload failed: ${errorData.error || response.statusText}`, 'error');
+                    return;
+                }
+
+                const result = await response.json();
+                log('upload', `✅ Upload successful!`, 'success');
+                log('upload', `  Job ID: ${result.jobId}`, 'success');
+                log('upload', `  Total References: ${result.totalReferences}`, 'success');
+                showStatus('upload', `Upload successful! Job ID: ${result.jobId}`, 'success');
+                
+            } catch (error) {
+                log('upload', `❌ Error: ${error.message}`, 'error');
+                showStatus('upload', `Error: ${error.message}`, 'error');
+            }
+        }
+
+        function clearSession() {
+            localStorage.removeItem('refcheck_user');
+            log('session', '🗑️  Session cleared', 'info');
+            showStatus('session', 'Session cleared - please login in main app', 'info');
+        }
+
+        function showStatus(type, message, status) {
+            const container = document.querySelector('.section');
+            let statusEl = document.getElementById(type + 'Status');
+            if (!statusEl) {
+                statusEl = document.createElement('div');
+                statusEl.id = type + 'Status';
+                container.appendChild(statusEl);
+            }
+            statusEl.className = `status ${status}`;
+            statusEl.textContent = message;
+        }
+
+        function clearAllLogs() {
+            document.getElementById('sessionLog').innerHTML = '';
+            document.getElementById('authLog').innerHTML = '';
+            document.getElementById('uploadLog').innerHTML = '';
+            document.getElementById('mainLog').innerHTML = '';
+        }
+
+        // Auto-check session on load
+        window.addEventListener('load', () => {
+            log('main', '✅ Debug page loaded', 'success');
+            log('main', '📋 Steps: 1. Check Session → 2. Check Auth Headers → 3. Upload File', 'info');
+            checkSession();
+        });
+    </script>
+</body>
+</html>

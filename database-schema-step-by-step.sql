@@ -73,6 +73,7 @@ CREATE TABLE IF NOT EXISTS references (
     duplicate_group_id UUID,
     duplicate_group_count INTEGER,
     is_primary_duplicate BOOLEAN DEFAULT FALSE,
+    issues JSONB,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );

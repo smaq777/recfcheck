@@ -13,6 +13,11 @@ CREATE TABLE IF NOT EXISTS users (
   email VARCHAR(255) UNIQUE NOT NULL,
   display_name VARCHAR(255),
   photo_url TEXT,
+  password_hash VARCHAR(255),
+  verification_code VARCHAR(255),
+  verification_code_expires TIMESTAMP,
+  password_reset_code VARCHAR(255),
+  password_reset_expires TIMESTAMP,
   subscription_plan VARCHAR(50) DEFAULT 'free',
   email_verified BOOLEAN DEFAULT false,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -30,6 +35,7 @@ CREATE TABLE IF NOT EXISTS analysis_jobs (
   total_references INTEGER DEFAULT 0,
   verified_count INTEGER DEFAULT 0,
   issues_count INTEGER DEFAULT 0,
+  warnings_count INTEGER DEFAULT 0,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -98,6 +104,7 @@ export interface AnalysisJob {
   total_references: number;
   verified_count: number;
   issues_count: number;
+  warnings_count: number;
   created_at: string;
   updated_at: string;
 }

@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Account &amp; App Settings - Analytica</title>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;700;800&amp;family=Noto+Sans:wght@400;500;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#2c346d",
+                        "primary-hover": "#1f2552",
+                        "background-light": "#f8fafb",
+                        "background-dark": "#191d2e",
+                        "surface-light": "#ffffff",
+                        "surface-dark": "#232942",
+                        "text-main": "#111218",
+                        "text-secondary": "#5f6486",
+                        "border-color": "#eaebf0"
+                    },
+                    fontFamily: {
+                        "display": ["Manrope", "sans-serif"],
+                        "body": ["Noto Sans", "sans-serif"]
+                    },
+                    borderRadius: { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px" },
+                },
+            },
+        }
+    </script>
+<style>
+        /* Custom Switch Styling for that distinctive feel */
+        .toggle-checkbox:checked {
+            right: 0;
+            border-color: #2c346d;
+        }
+        .toggle-checkbox:checked + .toggle-label {
+            background-color: #2c346d;
+        }
+        
+        /* Subtle custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent; 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1; 
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8; 
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-text-main dark:text-white font-display antialiased overflow-hidden h-screen flex flex-col">
+<!-- Top Navigation -->
+<header class="flex items-center justify-between whitespace-nowrap border-b border-solid border-border-color dark:border-gray-700 bg-surface-light dark:bg-surface-dark px-10 py-3 shrink-0 z-20 shadow-sm">
+<div class="flex items-center gap-4 text-primary dark:text-white">
+<div class="size-8 flex items-center justify-center rounded bg-primary/10 dark:bg-primary/30 text-primary dark:text-white">
+<span class="material-symbols-outlined text-[24px]">analytics</span>
+</div>
+<h2 class="text-text-main dark:text-white text-xl font-extrabold leading-tight tracking-[-0.015em]">Analytica</h2>
+</div>
+<div class="flex flex-1 justify-end gap-6 items-center">
+<button class="group flex cursor-pointer items-center justify-center rounded-lg h-10 w-10 text-text-secondary hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+<span class="material-symbols-outlined text-[24px] group-hover:text-primary transition-colors">notifications</span>
+</button>
+<div class="flex items-center gap-3 pl-6 border-l border-border-color dark:border-gray-700">
+<div class="text-right hidden sm:block">
+<p class="text-sm font-bold text-text-main dark:text-white leading-none">John Doe</p>
+<p class="text-xs text-text-secondary mt-1">Admin</p>
+</div>
+<div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-10 border-2 border-white dark:border-gray-600 shadow-sm" data-alt="User profile portrait of a smiling man" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuAD2FgCx0F8I9yAGvsmaX2UCd5qn0RiKcj8Dt_F5Gkk1C2wLb58qRQsZMqGFZusQNqUlsLvt9iVfR9mgCaN3OZmXGwOelZDJwRVXOZcfijyZJfiHjonIZwv2HFByrF_QF3EBoT6cQDd3ejU2rGUWJ-2afTLCXntMsHm6aj8cARSbhrk0OdJVXqaFubq0039EP1c3hidTMfwI7mJ30aYgdO5LcFemjrCNCIWmEipf8Cp4AOPjrx5hMF3vy4a6HrObh2j2N7nze6aNl0");'></div>
+</div>
+</div>
+</header>
+<div class="flex flex-1 overflow-hidden">
+<!-- Sidebar Navigation -->
+<aside class="w-72 flex-shrink-0 flex flex-col justify-between bg-surface-light dark:bg-surface-dark border-r border-border-color dark:border-gray-700 h-full overflow-y-auto pt-8 pb-4">
+<div class="flex flex-col gap-2 px-4">
+<div class="px-4 pb-4 mb-2">
+<h3 class="text-xs font-bold text-text-secondary uppercase tracking-wider">Settings</h3>
+</div>
+<a class="flex items-center gap-3 px-4 py-3 rounded-lg text-text-secondary hover:bg-gray-100 dark:hover:bg-gray-800 transition-all group" href="#">
+<span class="material-symbols-outlined text-[20px] group-hover:text-primary transition-colors">person</span>
+<p class="text-sm font-medium leading-normal group-hover:text-text-main dark:group-hover:text-white">Profile</p>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-lg bg-primary/10 text-primary dark:text-white border-l-4 border-primary shadow-sm" href="#">
+<span class="material-symbols-outlined text-[20px] font-bold fill-1">tune</span>
+<p class="text-sm font-bold leading-normal">Preferences</p>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-lg text-text-secondary hover:bg-gray-100 dark:hover:bg-gray-800 transition-all group" href="#">
+<span class="material-symbols-outlined text-[20px] group-hover:text-primary transition-colors">credit_card</span>
+<p class="text-sm font-medium leading-normal group-hover:text-text-main dark:group-hover:text-white">Billing</p>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-lg text-text-secondary hover:bg-gray-100 dark:hover:bg-gray-800 transition-all group" href="#">
+<span class="material-symbols-outlined text-[20px] group-hover:text-primary transition-colors">api</span>
+<p class="text-sm font-medium leading-normal group-hover:text-text-main dark:group-hover:text-white">API Keys</p>
+</a>
+<div class="my-4 border-t border-border-color dark:border-gray-700 mx-4"></div>
+<div class="px-4 pb-2">
+<h3 class="text-xs font-bold text-text-secondary uppercase tracking-wider mb-2">Workspace</h3>
+</div>
+<a class="flex items-center gap-3 px-4 py-3 rounded-lg text-text-secondary hover:bg-gray-100 dark:hover:bg-gray-800 transition-all group" href="#">
+<span class="material-symbols-outlined text-[20px] group-hover:text-primary transition-colors">group</span>
+<p class="text-sm font-medium leading-normal group-hover:text-text-main dark:group-hover:text-white">Team Members</p>
+</a>
+</div>
+<div class="px-6 py-4 mt-auto">
+<div class="bg-primary/5 rounded-xl p-4 border border-primary/10">
+<div class="flex items-center gap-2 text-primary mb-2">
+<span class="material-symbols-outlined text-[20px]">diamond</span>
+<span class="font-bold text-sm">Pro Plan</span>
+</div>
+<p class="text-xs text-text-secondary mb-3">Your next billing date is Oct 24, 2024.</p>
+<button class="text-xs font-bold text-primary hover:underline">Manage Subscription</button>
+</div>
+</div>
+</aside>
+<!-- Main Content Area -->
+<main class="flex-1 overflow-y-auto bg-background-light dark:bg-background-dark p-8 md:p-12 lg:px-16 scroll-smooth">
+<div class="max-w-[800px] mx-auto pb-20">
+<!-- Page Heading -->
+<div class="flex flex-col gap-3 mb-10">
+<h1 class="text-text-main dark:text-white text-3xl md:text-4xl font-black leading-tight tracking-[-0.02em]">App Preferences</h1>
+<p class="text-text-secondary text-lg font-normal leading-relaxed max-w-2xl">Configure how the analysis engine processes your data and manage your environment defaults.</p>
+</div>
+<!-- Section: Analysis Engine -->
+<section class="bg-surface-light dark:bg-surface-dark rounded-xl border border-border-color dark:border-gray-700 shadow-sm mb-8 overflow-hidden">
+<div class="px-6 py-5 border-b border-border-color dark:border-gray-700 flex justify-between items-center bg-gray-50/50 dark:bg-gray-800/30">
+<h2 class="text-text-main dark:text-white text-lg font-bold flex items-center gap-2">
+<span class="material-symbols-outlined text-primary dark:text-indigo-400">psychology</span>
+                            Analysis Engine
+                        </h2>
+<span class="bg-green-100 text-green-700 text-xs font-bold px-2 py-1 rounded-full border border-green-200">v2.4 Active</span>
+</div>
+<div class="p-6 md:p-8 space-y-8">
+<!-- Strictness Level -->
+<div class="grid md:grid-cols-3 gap-6 items-start">
+<div class="col-span-1">
+<label class="text-text-main dark:text-white font-bold text-base block mb-1">Strictness Level</label>
+<p class="text-text-secondary text-sm leading-relaxed">Determines how rigorous the AI checks for errors.</p>
+</div>
+<div class="col-span-2">
+<div class="relative">
+<select class="w-full appearance-none rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-text-main dark:text-white px-4 py-3 pr-10 focus:border-primary focus:ring-2 focus:ring-primary/20 transition-shadow font-medium">
+<option value="standard">Standard (Recommended)</option>
+<option value="academic">Academic &amp; Research</option>
+<option value="creative">Creative Writing</option>
+<option value="strict">Strict Compliance</option>
+</select>
+<div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-text-secondary">
+<span class="material-symbols-outlined">expand_more</span>
+</div>
+</div>
+<div class="mt-3 flex gap-2">
+<span class="inline-flex items-center gap-1 px-2.5 py-1 rounded bg-gray-100 dark:bg-gray-700 text-xs text-text-secondary font-medium border border-gray-200 dark:border-gray-600">
+<span class="material-symbols-outlined text-[14px]">check_circle</span> Grammar
+                                    </span>
+<span class="inline-flex items-center gap-1 px-2.5 py-1 rounded bg-gray-100 dark:bg-gray-700 text-xs text-text-secondary font-medium border border-gray-200 dark:border-gray-600">
+<span class="material-symbols-outlined text-[14px]">check_circle</span> Tone
+                                    </span>
+<span class="inline-flex items-center gap-1 px-2.5 py-1 rounded bg-gray-100 dark:bg-gray-700 text-xs text-text-secondary font-medium border border-gray-200 dark:border-gray-600">
+<span class="material-symbols-outlined text-[14px]">check_circle</span> Plagiarism
+                                    </span>
+</div>
+</div>
+</div>
+<hr class="border-gray-100 dark:border-gray-700"/>
+<!-- Auto-fix Settings -->
+<div class="grid md:grid-cols-3 gap-6 items-start">
+<div class="col-span-1">
+<label class="text-text-main dark:text-white font-bold text-base block mb-1">Auto-corrections</label>
+<p class="text-text-secondary text-sm leading-relaxed">Automatically apply changes without prompt.</p>
+</div>
+<div class="col-span-2 space-y-4">
+<div class="flex items-center justify-between p-4 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-primary/30 transition-colors bg-white dark:bg-gray-800/50">
+<div class="flex flex-col">
+<span class="text-text-main dark:text-white font-medium text-sm">Fix basic typography</span>
+<span class="text-text-secondary text-xs">Smart quotes, dashes, and spacing.</span>
+</div>
+<label class="flex items-center cursor-pointer relative" for="toggle-typo">
+<input checked="" class="sr-only toggle-checkbox" id="toggle-typo" type="checkbox"/>
+<div class="toggle-label w-11 h-6 bg-gray-200 dark:bg-gray-600 rounded-full transition-colors duration-200 ease-in-out"></div>
+<div class="dot absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform duration-200 ease-in-out transform translate-x-0"></div>
+</label>
+</div>
+<div class="flex items-center justify-between p-4 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-primary/30 transition-colors bg-white dark:bg-gray-800/50">
+<div class="flex flex-col">
+<span class="text-text-main dark:text-white font-medium text-sm">Convert passive voice</span>
+<span class="text-text-secondary text-xs">Rewrite sentences to active voice automatically.</span>
+</div>
+<label class="flex items-center cursor-pointer relative" for="toggle-voice">
+<input class="sr-only toggle-checkbox" id="toggle-voice" type="checkbox"/>
+<div class="toggle-label w-11 h-6 bg-gray-200 dark:bg-gray-600 rounded-full transition-colors duration-200 ease-in-out"></div>
+<div class="dot absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform duration-200 ease-in-out transform translate-x-0"></div>
+</label>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Section: Data Management -->
+<section class="bg-surface-light dark:bg-surface-dark rounded-xl border border-border-color dark:border-gray-700 shadow-sm mb-8 overflow-hidden">
+<div class="px-6 py-5 border-b border-border-color dark:border-gray-700 flex justify-between items-center bg-gray-50/50 dark:bg-gray-800/30">
+<h2 class="text-text-main dark:text-white text-lg font-bold flex items-center gap-2">
+<span class="material-symbols-outlined text-primary dark:text-indigo-400">database</span>
+                            Data Retention
+                        </h2>
+</div>
+<div class="p-6 md:p-8 space-y-8">
+<!-- Retention Policy -->
+<div class="grid md:grid-cols-3 gap-6 items-start">
+<div class="col-span-1">
+<label class="text-text-main dark:text-white font-bold text-base block mb-1">File Deletion</label>
+<p class="text-text-secondary text-sm leading-relaxed">When should we purge your uploaded documents?</p>
+</div>
+<div class="col-span-2">
+<div class="relative">
+<select class="w-full appearance-none rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-text-main dark:text-white px-4 py-3 pr-10 focus:border-primary focus:ring-2 focus:ring-primary/20 transition-shadow font-medium">
+<option value="24h">After 24 hours (High Security)</option>
+<option selected="" value="7d">After 7 days</option>
+<option value="30d">After 30 days</option>
+<option value="manual">Never (Manual deletion only)</option>
+</select>
+<div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-text-secondary">
+<span class="material-symbols-outlined">expand_more</span>
+</div>
+</div>
+<div class="mt-4 p-4 bg-orange-50 dark:bg-orange-900/10 border border-orange-200 dark:border-orange-800/30 rounded-lg flex gap-3 items-start">
+<span class="material-symbols-outlined text-orange-600 text-[20px] mt-0.5">warning</span>
+<p class="text-sm text-orange-800 dark:text-orange-200">
+                                        Setting this to "24 hours" may prevent recovery of drafts if you haven't exported them.
+                                    </p>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Section: Advanced -->
+<section class="bg-surface-light dark:bg-surface-dark rounded-xl border border-border-color dark:border-gray-700 shadow-sm mb-12 overflow-hidden">
+<div class="px-6 py-5 border-b border-border-color dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/30">
+<h2 class="text-text-main dark:text-white text-lg font-bold flex items-center gap-2">
+<span class="material-symbols-outlined text-primary dark:text-indigo-400">terminal</span>
+                           Advanced Context
+                       </h2>
+</div>
+<div class="p-6 md:p-8">
+<div class="grid md:grid-cols-3 gap-6">
+<div class="col-span-1">
+<label class="text-text-main dark:text-white font-bold text-base block mb-1">Custom Dictionary</label>
+<p class="text-text-secondary text-sm leading-relaxed">Add industry-specific terms to avoid false positives.</p>
+</div>
+<div class="col-span-2">
+<textarea class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-text-main dark:text-white px-4 py-3 focus:border-primary focus:ring-2 focus:ring-primary/20 transition-shadow min-h-[120px] font-mono text-sm" placeholder="Enter terms separated by commas (e.g., EBITDA, SaaS, YoY)"></textarea>
+<p class="text-xs text-text-secondary mt-2 text-right">0 terms added</p>
+</div>
+</div>
+</div>
+</section>
+<!-- Action Footer -->
+<div class="fixed bottom-0 right-0 w-full md:w-[calc(100%-18rem)] bg-surface-light dark:bg-surface-dark border-t border-border-color dark:border-gray-700 p-4 md:px-16 flex justify-between items-center z-10 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
+<button class="px-6 py-2.5 rounded-lg text-text-secondary hover:text-text-main hover:bg-gray-100 dark:hover:bg-gray-800 font-bold text-sm transition-colors">
+                        Reset Defaults
+                    </button>
+<div class="flex items-center gap-4">
+<span class="text-sm text-text-secondary hidden sm:inline-block">Last saved: Today at 2:30 PM</span>
+<button class="px-8 py-2.5 rounded-lg bg-primary hover:bg-primary-hover text-white font-bold text-sm shadow-md transition-all transform hover:translate-y-px active:translate-y-0.5 flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px]">save</span>
+                            Save Preferences
+                        </button>
+</div>
+</div>
+</div>
+</main>
+</div>
+<script>
+        // Simple script to handle toggle visual state for the custom checkbox
+        document.querySelectorAll('.toggle-checkbox').forEach(toggle => {
+            toggle.addEventListener('change', function() {
+                const dot = this.parentElement.querySelector('.dot');
+                if (this.checked) {
+                    dot.style.transform = 'translateX(100%)';
+                } else {
+                    dot.style.transform = 'translateX(0)';
+                }
+            });
+            // Initial state check
+             const dot = toggle.parentElement.querySelector('.dot');
+             if (toggle.checked) {
+                 dot.style.transform = 'translateX(1.25rem)'; // 20px
+             }
+        });
+    </script>
+</body></html>

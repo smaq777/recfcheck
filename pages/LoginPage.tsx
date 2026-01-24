@@ -1,6 +1,7 @@
 
 import React, { useState } from 'react';
 import { AppView, UserProfile } from '../types';
+import { loginWithEmail } from '../auth-client';
 
 interface LoginPageProps {
   onNavigate: (view: AppView) => void;
@@ -19,16 +20,17 @@ const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, onAuthSuccess }) => {
     setIsLoading(true);
     setError(null);
 
-    // Simulate Firebase Email Sign In
-    setTimeout(() => {
-      const mockUser: UserProfile = {
-        uid: 'user_123',
-        email: email,
-        displayName: 'Dr. Sarah Miller',
-        photoURL: 'https://picsum.photos/id/64/100/100',
+    try {
+      const authUser = await loginWithEmail(email, password);
+      
+      const user: UserProfile = {
+        uid: authUser.id,
+        email: authUser.email,
+        displayName: authUser.displayName,
+        photoURL: authUser.photoURL,
         provider: 'email',
-        emailVerified: true,
-        createdAt: Date.now(),
+        emailVerified: authUser.emailVerified,
+        createdAt: authUser.createdAt,
         settings: {
           strictness: 'standard',
           autoFill: true,
@@ -36,43 +38,30 @@ const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, onAuthSuccess }) => {
           dataRetention: 24
         },
         subscription: {
-          plan: 'pro',
-          checksThisMonth: 5,
-          maxChecksPerMonth: 100
-        }
+          plan: authUser.subscription?.plan || 'free',
+          checksThisMonth: authUser.subscription?.checksThisMonth || 0,
+          maxChecksPerMonth:
+            authUser.subscription?.maxChecksPerMonth ||
+            (authUser.subscription?.plan === 'pro' ? 50 : authUser.subscription?.plan === 'team' ? 200 : 5),
+        },
       };
+
+      onAuthSuccess(user);
+    } catch (err: any) {
+      setError(err.message || 'Login failed. Please try again.');
+      console.error('Login error:', err);
+    } finally {
       setIsLoading(false);
-      onAuthSuccess(mockUser);
-    }, 1000);
+    }
+  };
+
+  const handleForgotPassword = () => {
+    onNavigate(AppView.FORGOT_PASSWORD);
   };
 
   const handleGoogleLogin = () => {
-    setIsLoading(true);
-    // Simulate Firebase Google Auth
-    setTimeout(() => {
-      const mockUser: UserProfile = {
-        uid: 'google_user_123',
-        email: 'sarah.miller@stanford.edu',
-        displayName: 'Dr. Sarah Miller',
-        photoURL: 'https://picsum.photos/id/64/100/100',
-        provider: 'google',
-        emailVerified: true,
-        createdAt: Date.now(),
-        settings: {
-          strictness: 'standard',
-          autoFill: true,
-          dedupe: true,
-          dataRetention: 24
-        },
-        subscription: {
-          plan: 'pro',
-          checksThisMonth: 5,
-          maxChecksPerMonth: 100
-        }
-      };
-      setIsLoading(false);
-      onAuthSuccess(mockUser);
-    }, 1000);
+    // TODO: Implement Google OAuth login
+    console.log('Google login not yet implemented');
   };
 
   return (
