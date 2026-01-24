@@ -8,6 +8,7 @@ import http from "http";
 import { fileURLToPath } from "url";
 import { dirname } from "path";
 import crypto from "crypto";
+import bcrypt from "bcrypt";
 import pdfParse from "pdf-parse";
 import { crossValidateReference } from "./verification-apis.js";
 import { query } from "./db-connection.js";
@@ -30,6 +31,9 @@ import {
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
+
+// Security configuration
+const BCRYPT_SALT_ROUNDS = 12;
 
 // Store active SSE connections for progress updates
 const activeConnections = new Map(); // jobId -> response object
@@ -696,19 +700,20 @@ const server = http.createServer(async (req, res) => {
           return;
         }
 
-        // Hash password with SHA-256
-        const passwordHash = crypto.createHash('sha256').update(password + (process.env.PASSWORD_SALT || 'default_salt')).digest('hex');
-        const verificationCode = crypto.randomBytes(32).toString('hex');
+        // Hash password with bcrypt
+        const passwordHash = await bcrypt.hash(password, BCRYPT_SALT_ROUNDS);
+        const verificationCode = Math.floor(1000 + Math.random() * 9000).toString();
         const userId = crypto.randomUUID();
+        const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
 
         // Create user in database using raw query
         let user = null;
         try {
           const result = await query(
-            `INSERT INTO users (email, full_name, password_hash, verification_token, email_verified, subscription_tier, created_at)
-             VALUES ($1, $2, $3, $4, false, 'free', NOW())
+            `INSERT INTO users (email, full_name, password_hash, verification_token, verification_code_expires, email_verified, subscription_tier, created_at)
+             VALUES ($1, $2, $3, $4, $5, false, 'free', NOW())
              RETURNING id, email, full_name, email_verified, subscription_tier, created_at`,
-            [email, displayName, passwordHash, verificationCode]
+            [email, displayName, passwordHash, verificationCode, expiresAt]
           );
           user = result.rows[0];
         } catch (dbError) {
@@ -719,12 +724,8 @@ const server = http.createServer(async (req, res) => {
         }
 
         console.log(`✅ User created: ${email}`);
-        console.log(`📧 Verification code: ${verificationCode}`);
-        console.log(`🔐 For testing, use this verification code to complete signup`);
 
         // Send verification email via Resend
-        const verifyUrl = `${process.env.PUBLIC_URL || 'http://localhost:3000'}/verify-email?code=${verificationCode}&email=${encodeURIComponent(email)}`;
-
         if (process.env.RESEND_API_KEY) {
           try {
             const emailResponse = await fetch('https://api.resend.com/emails', {
@@ -734,20 +735,20 @@ const server = http.createServer(async (req, res) => {
                 'Content-Type': 'application/json',
               },
               body: JSON.stringify({
-                from: 'RefCheck <noreply@khabeerk.com>',
+                from: 'RefCheck <admin@khabeerk.com>',
                 to: email,
                 subject: 'Verify your RefCheck email address',
                 html: `
                   <div style="font-family: sans-serif; padding: 20px; color: #333; max-width: 600px;">
                     <h2 style="color: #2c346d;">Welcome to RefCheck, ${displayName}!</h2>
-                    <p>Please verify your email address to activate your account.</p>
-                    <div style="margin: 30px 0;">
-                      <a href="${verifyUrl}" style="background-color: #2c346d; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">Verify Email Address</a>
+                    <p>Thank you for signing up! Please verify your email address to activate your account.</p>
+                    <p style="margin: 20px 0; font-size: 14px; color: #666;">Enter this verification code on the website:</p>
+                    <div style="margin: 30px 0; padding: 20px; background-color: #f5f5f5; border-radius: 8px; text-align: center;">
+                      <div style="font-size: 48px; font-weight: bold; letter-spacing: 8px; color: #2c346d; font-family: monospace;">${verificationCode}</div>
                     </div>
-                    <p style="font-size: 12px; color: #666;">Or copy this link: <code>${verifyUrl}</code></p>
-                    <p style="font-size: 12px; color: #666;">This link expires in 24 hours.</p>
-                    <p style="font-size: 12px; color: #666;">If you didn't create this account, please ignore this email.</p>
+                    <p style="font-size: 14px; color: #666;">Copy and paste this code into the verification form to complete your registration.</p>
                     <hr style="margin-top: 30px; border: none; border-top: 1px solid #eee;">
+                    <p style="font-size: 12px; color: #999;">This code expires in 24 hours. If you didn't create this account, please ignore this email.</p>
                     <p style="font-size: 11px; color: #999;">RefCheck - Academic Bibliography Verification</p>
                   </div>
                 `,
@@ -777,16 +778,10 @@ const server = http.createServer(async (req, res) => {
           createdAt: new Date(user.created_at).getTime(),
         };
 
-        console.log(`✅ User created: ${email}`);
-        console.log(`📧 Verification code for testing: ${verificationCode}`);
-
-        const response = { user: authUser, verificationCodeForTesting: verificationCode };
-        console.log(`📤 Response object structure:`, Object.keys(response));
-        console.log(`📤 Response.verificationCodeForTesting value:`, response.verificationCodeForTesting);
-        console.log(`📤 Full response being sent:`, JSON.stringify(response));
+        console.log(`✅ User created successfully: ${email}`);
 
         res.writeHead(201, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify(response));
+        res.end(JSON.stringify({ user: authUser }));
       } catch (error) {
         console.error('[Signup Error]', error);
         res.writeHead(500, { 'Content-Type': 'application/json' });
@@ -834,17 +829,17 @@ const server = http.createServer(async (req, res) => {
           return;
         }
 
-        // Verify password
-        const passwordHash = crypto.createHash('sha256').update(password + (process.env.PASSWORD_SALT || 'default_salt')).digest('hex');
-        if (user.password_hash && user.password_hash !== passwordHash) {
-          res.writeHead(401, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ message: 'Email or password is incorrect. Please try again.' }));
-          return;
+        // Verify password with bcrypt
+        if (user.password_hash) {
+          const isPasswordValid = await bcrypt.compare(password, user.password_hash);
+          if (!isPasswordValid) {
+            res.writeHead(401, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ message: 'Email or password is incorrect. Please try again.' }));
+            return;
+          }
         }
 
         console.log(`✅ User logged in: ${email}`);
-        console.log(`🔍 User from DB:`, user);
-        console.log(`🔍 email_verified from DB:`, user.email_verified);
 
         const authUser = {
           id: user.id,
@@ -855,8 +850,6 @@ const server = http.createServer(async (req, res) => {
           subscription: { plan: user.subscription_tier || 'free' },
           createdAt: new Date(user.created_at).getTime()
         };
-
-        console.log(`📤 Returning authUser with emailVerified:`, authUser.emailVerified);
 
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ user: authUser }));
@@ -951,9 +944,61 @@ const server = http.createServer(async (req, res) => {
         }
 
         const resetCode = crypto.randomBytes(32).toString('hex');
+        const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+        
+        // Store reset code in database
+        await query(
+          `UPDATE users SET password_reset_code = $1, password_reset_expires = $2 WHERE id = $3`,
+          [resetCode, expiresAt, user.id]
+        );
+
         console.log(`✅ Password reset requested for: ${email}`);
-        console.log(`🔐 Reset code: ${resetCode}`);
-        // TODO: Send reset email via Resend
+
+        // Send reset email via Resend
+        if (process.env.RESEND_API_KEY) {
+          const resetUrl = `${process.env.PUBLIC_URL || 'http://localhost:3000'}/reset-password?code=${resetCode}&email=${encodeURIComponent(email)}`;
+          
+          try {
+            const emailResponse = await fetch('https://api.resend.com/emails', {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${process.env.RESEND_API_KEY}`,
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                from: 'RefCheck <admin@khabeerk.com>',
+                to: email,
+                subject: 'Reset your RefCheck password',
+                html: `
+                  <div style="font-family: sans-serif; padding: 20px; color: #333; max-width: 600px;">
+                    <h2 style="color: #2c346d;">Password Reset Request</h2>
+                    <p>Hi ${user.full_name || 'there'},</p>
+                    <p>We received a request to reset your password. Click the link below to create a new password.</p>
+                    <div style="margin: 30px 0;">
+                      <a href="${resetUrl}" style="background-color: #2c346d; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">Reset Password</a>
+                    </div>
+                    <p style="font-size: 14px; color: #666;">Or copy and paste this link into your browser:</p>
+                    <p style="font-size: 12px; color: #999; word-break: break-all;">${resetUrl}</p>
+                    <hr style="margin: 30px 0; border: none; border-top: 1px solid #eee;">
+                    <p style="font-size: 12px; color: #999;">This link expires in 24 hours. If you didn't request a password reset, please ignore this email - your password will remain unchanged.</p>
+                    <p style="font-size: 11px; color: #999;">RefCheck - Academic Bibliography Verification</p>
+                  </div>
+                `,
+              }),
+            });
+
+            if (emailResponse.ok) {
+              console.log(`✅ Password reset email sent to ${email}`);
+            } else {
+              const emailError = await emailResponse.json();
+              console.warn(`⚠️ Email send failed: ${emailError.message}`);
+            }
+          } catch (emailError) {
+            console.warn(`⚠️ Email service error: ${emailError.message}`);
+          }
+        } else {
+          console.warn(`⚠️ RESEND_API_KEY not set - reset email not sent`);
+        }
 
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ success: true }));
@@ -973,21 +1018,29 @@ const server = http.createServer(async (req, res) => {
 
         if (!email || !code || !newPassword || newPassword.length < 8) {
           res.writeHead(400, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ message: 'Invalid email, code, or password' }));
+          res.end(JSON.stringify({ message: 'Invalid email, code, or password (minimum 8 characters)' }));
           return;
         }
 
-        const user = await getUserByEmail(email);
-        if (!user) {
+        // Hash new password with bcrypt
+        const newPasswordHash = await bcrypt.hash(newPassword, BCRYPT_SALT_ROUNDS);
+
+        // Update password and clear reset code
+        const result = await query(
+          `UPDATE users 
+           SET password_hash = $1, password_reset_code = NULL, password_reset_expires = NULL
+           WHERE email = $2 AND password_reset_code = $3 AND password_reset_expires > NOW()
+           RETURNING id`,
+          [newPasswordHash, email, code]
+        );
+
+        if (!result.rows || result.rows.length === 0) {
           res.writeHead(400, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ message: 'User not found' }));
+          res.end(JSON.stringify({ message: 'Invalid or expired reset code' }));
           return;
         }
 
-        // In production: verify reset code from database
-        const newPasswordHash = crypto.createHash('sha256').update(newPassword + (process.env.PASSWORD_SALT || 'default_salt')).digest('hex');
-        console.log(`✅ Password reset for: ${email}`);
-        // TODO: Update password hash in database
+        console.log(`✅ Password reset successfully for: ${email}`);
 
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ success: true }));
@@ -1139,7 +1192,12 @@ const server = http.createServer(async (req, res) => {
 
             await updateJobProgress(jobId, progress, currentStep);
 
-            // Update local counters
+            console.log(`   [${i + 1}/${parsed.references.length}] Verifying: "${ref.title.substring(0, 50)}..."`);
+
+            // Cross-validate reference FIRST (moved before using it)
+            const verified = await crossValidateReference(ref);
+
+            // Update local counters (moved after verification)
             if (verified.status === 'verified') currentVerifiedCount++;
             else if (['issue', 'retracted', 'not_found'].includes(verified.status)) currentIssuesCount++;
             else if (verified.status === 'warning') currentWarningsCount++;
@@ -1158,10 +1216,6 @@ const server = http.createServer(async (req, res) => {
                 warningsCount: currentWarningsCount
               })}\n\n`);
             }
-
-            console.log(`   [${i + 1}/${parsed.references.length}] Verifying: "${ref.title.substring(0, 50)}..."`);
-
-            const verified = await crossValidateReference(ref);
 
             // Create reference in database
             const referenceData = {

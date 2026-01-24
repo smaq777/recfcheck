@@ -22,7 +22,7 @@ function getOpenAiClient() {
 export async function sendEmail(to: string, subject: string, html: string) {
   try {
     if (!RESEND_API_KEY) {
-      return { success: false, error: { message: "Missing RESEND_API_KEY. Configure it in .env." } };
+      return { success: false, error: { message: "Missing RESEND_API_KEY. Configure it in .env.local" } };
     }
     const response = await fetch("https://api.resend.com/emails", {
       method: "POST",
@@ -31,7 +31,7 @@ export async function sendEmail(to: string, subject: string, html: string) {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        from: "RefCheck Audit <onboarding@resend.dev>",
+        from: "RefCheck <admin@khabeerk.com>",
         to: [to],
         subject: subject,
         html: html,
@@ -99,6 +99,24 @@ function processOpenAlexResponse(data: any, ref: Reference): Partial<Reference> 
   const doi = bestMatch.doi;
   const venue = bestMatch.primary_location?.source?.display_name || "Unknown Venue";
   
+  // Enhanced peer review and preprint detection
+  const sourceType = bestMatch.primary_location?.source?.type;
+  const venueLower = venue.toLowerCase();
+  
+  // Known preprint servers and repositories
+  const preprintIndicators = [
+    'arxiv', 'biorxiv', 'medrxiv', 'chemrxiv', 'ssrn',
+    'preprint', 'repository', 'osf preprints', 'research square',
+    'authorea', 'zenodo', 'figshare', 'psyarxiv', 'socarxiv',
+    'engrxiv', 'techrxiv', 'eartharxiv'
+  ];
+  
+  const isPreprint = sourceType === 'repository' || 
+                     preprintIndicators.some(indicator => venueLower.includes(indicator));
+  
+  // Peer-reviewed journals typically have type 'journal'
+  const isPeerReviewed = sourceType === 'journal' && !isPreprint;
+  
   const cleanInput = ref.title.toLowerCase().replace(/[^a-z0-9]/g, '');
   const cleanFound = canonicalTitle.toLowerCase().replace(/[^a-z0-9]/g, '');
   
@@ -111,7 +129,18 @@ function processOpenAlexResponse(data: any, ref: Reference): Partial<Reference> 
   if (yearScore < 1) issues.push("YEAR DISCREPANCY");
   if (!ref.doi && doi) issues.push("ADD DOI");
   if (!ref.source && venue) issues.push("ADD VENUE");
-  if (bestMatch.is_retracted) issues.push("RETRACTED PAPER");
+  
+  // CRITICAL: Check for retraction (OpenAlex provides this from Retraction Watch data)
+  if (bestMatch.is_retracted) {
+    issues.push("🚨 RETRACTED PAPER - DO NOT CITE");
+  }
+  
+  // Check for preprints/non-peer-reviewed work
+  if (isPreprint) {
+    issues.push("📄 PREPRINT - Not Peer-Reviewed");
+  } else if (!isPeerReviewed && sourceType !== 'journal') {
+    issues.push("⚠️ UNVERIFIED - Review Status Unknown");
+  }
 
   return {
     status: bestMatch.is_retracted ? 'retracted' : (issues.length === 0 ? 'verified' : (issues.length >= 2 || titleScore < 0.7) ? 'issue' : 'warning'),

@@ -12,7 +12,10 @@ import ShareableReport from './pages/ShareableReport';
 import LoginPage from './pages/LoginPage';
 import SignupPage from './pages/SignupPage';
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
+import ResetPasswordPage from './pages/ResetPasswordPage';
 import VerifyEmailPage from './pages/VerifyEmailPage';
+import PrivacyPolicyPage from './pages/PrivacyPolicyPage';
+import TermsConditionsPage from './pages/TermsConditionsPage';
 import { getCurrentUser, logout } from './auth-client';
 import { loadPageState } from './src/lib/pageStateManager';
 
@@ -60,6 +63,26 @@ const AppHeader: React.FC<{
   user: UserProfile | null,
   onLogout: () => void
 }> = ({ onViewChange, currentView, user, onLogout }) => {
+  const [isDropdownOpen, setIsDropdownOpen] = React.useState(false);
+  const dropdownRef = React.useRef<HTMLDivElement>(null);
+
+  // Close dropdown when clicking outside
+  React.useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsDropdownOpen(false);
+      }
+    };
+
+    if (isDropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isDropdownOpen]);
+
   return (
     <header className="sticky top-0 z-50 flex items-center justify-between border-b border-border-light bg-white/80 backdrop-blur-md px-6 py-3">
       <div className="flex items-center gap-6">
@@ -105,17 +128,25 @@ const AppHeader: React.FC<{
             <p className="text-xs font-semibold text-slate-900">{user?.displayName || user?.email}</p>
             <p className="text-[10px] text-slate-500">{user?.subscription.plan.toUpperCase()} Account</p>
           </div>
-          <div className="relative group">
+          <div className="relative" ref={dropdownRef}>
             <div
-              className="size-9 rounded-full ring-2 ring-white shadow-sm bg-center bg-cover cursor-pointer"
+              onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+              className="size-9 rounded-full ring-2 ring-white shadow-sm bg-center bg-cover cursor-pointer hover:ring-primary transition-all"
               style={{ backgroundImage: `url(${user?.photoURL || 'https://picsum.photos/id/64/100/100'})` }}
             />
-            <div className="absolute right-0 mt-2 w-48 bg-white border border-border-light rounded-xl shadow-xl z-50 overflow-hidden hidden group-hover:block animate-fade-in-up">
-
-              <button onClick={onLogout} className="w-full px-4 py-3 text-left text-sm font-bold text-error hover:bg-red-50 flex items-center gap-3 border-t border-border-light">
-                <span className="material-symbols-outlined text-sm">logout</span> Sign Out
-              </button>
-            </div>
+            {isDropdownOpen && (
+              <div className="absolute right-0 top-full mt-2 w-48 bg-white border border-border-light rounded-xl shadow-xl z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+                <button 
+                  onClick={() => {
+                    setIsDropdownOpen(false);
+                    onLogout();
+                  }} 
+                  className="w-full px-4 py-3 text-left text-sm font-bold text-error hover:bg-red-50 flex items-center gap-3 border-t border-border-light transition-colors"
+                >
+                  <span className="material-symbols-outlined text-sm">logout</span> Sign Out
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -132,6 +163,30 @@ const App: React.FC = () => {
   // Initialize auth listener - check localStorage for user session
   useEffect(() => {
     console.log('[App] Checking for existing session on mount');
+    
+    // Check URL path for public routes first (like reset-password, verify-email)
+    const currentPath = window.location.pathname;
+    const searchParams = new URLSearchParams(window.location.search);
+    
+    // Handle password reset URL
+    if (currentPath === '/reset-password' || searchParams.has('code')) {
+      const code = searchParams.get('code');
+      const email = searchParams.get('email');
+      if (code && currentPath === '/reset-password') {
+        console.log('[App] Detected reset-password URL');
+        setCurrentView(AppView.RESET_PASSWORD);
+        setIsLoading(false);
+        return;
+      }
+    }
+    
+    // Handle verify-email URL
+    if (currentPath === '/verify-email') {
+      console.log('[App] Detected verify-email URL');
+      setCurrentView(AppView.VERIFY_EMAIL);
+      setIsLoading(false);
+      return;
+    }
 
     // First check localStorage for persisted user
     let userFromStorage = null;
@@ -239,6 +294,10 @@ const App: React.FC = () => {
     }
 
     // IMPORTANT: Always save to localStorage before setting state
+    // Clear any previous user's job data
+    localStorage.removeItem('current_job_id');
+    localStorage.removeItem('refcheck_page_state');
+    
     // Ensure we have 'id' field for auth, not just 'uid'
     const userToStore = {
       ...normalizedUser,
@@ -269,6 +328,8 @@ const App: React.FC = () => {
     // Clear localStorage completely
     if (typeof localStorage !== 'undefined') {
       localStorage.removeItem('refcheck_user');
+      localStorage.removeItem('current_job_id');
+      localStorage.removeItem('refcheck_page_state');
     }
     setUser(null);
     setCurrentView(AppView.LANDING);
@@ -292,6 +353,8 @@ const App: React.FC = () => {
         return <SignupPage onNavigate={navigateTo} onAuthSuccess={handleAuthSuccess} />;
       case AppView.FORGOT_PASSWORD:
         return <ForgotPasswordPage onNavigate={navigateTo} />;
+      case AppView.RESET_PASSWORD:
+        return <ResetPasswordPage onNavigate={navigateTo} />;
       case AppView.VERIFY_EMAIL:
         return <VerifyEmailPage userEmail={user?.email || ''} onNavigate={navigateTo} onAuthSuccess={handleAuthSuccess} verificationCode={verificationCode} />;
       case AppView.PROGRESS:
@@ -308,12 +371,16 @@ const App: React.FC = () => {
         return <SettingsPage onNavigate={navigateTo} />;
       case AppView.REPORT:
         return <ShareableReport onNavigate={navigateTo} />;
+      case AppView.PRIVACY_POLICY:
+        return <PrivacyPolicyPage onNavigate={navigateTo} />;
+      case AppView.TERMS_CONDITIONS:
+        return <TermsConditionsPage onNavigate={navigateTo} />;
       default:
         return <LandingPage onNavigate={navigateTo} />;
     }
   };
 
-  const isPublicView = [AppView.LANDING, AppView.PRICING, AppView.REPORT, AppView.LOGIN, AppView.SIGNUP, AppView.FORGOT_PASSWORD, AppView.VERIFY_EMAIL].includes(currentView);
+  const isPublicView = [AppView.LANDING, AppView.PRICING, AppView.REPORT, AppView.LOGIN, AppView.SIGNUP, AppView.FORGOT_PASSWORD, AppView.RESET_PASSWORD, AppView.VERIFY_EMAIL, AppView.PRIVACY_POLICY, AppView.TERMS_CONDITIONS].includes(currentView);
 
   return (
     <div className="min-h-screen flex flex-col transition-all duration-300">

@@ -65,21 +65,38 @@ const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, onAuthSuccess }) => {
   };
 
   return (
-    <div className="flex-1 flex items-center justify-center p-6 bg-slate-50">
-      <div className="w-full max-w-md">
-        <div className="text-center mb-10">
-          <div 
-            className="inline-flex items-center gap-3 text-primary mb-6 cursor-pointer" 
-            onClick={() => onNavigate(AppView.LANDING)}
-          >
-            <div className="size-10 rounded-xl bg-primary text-white flex items-center justify-center shadow-lg">
-              <span className="material-symbols-outlined text-2xl">fact_check</span>
+    <div className="relative flex flex-col min-h-screen w-full">
+      {/* Header */}
+      <header className="sticky top-0 z-50 w-full border-b border-border-light bg-white/80 backdrop-blur-md">
+        <div className="mx-auto max-w-[1280px] px-4 sm:px-6 lg:px-8">
+          <div className="flex h-16 items-center justify-between">
+            <div 
+              className="flex items-center gap-2 cursor-pointer" 
+              onClick={() => onNavigate(AppView.LANDING)}
+            >
+              <div className="flex items-center justify-center size-8 rounded bg-primary/10 text-primary">
+                <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>library_books</span>
+              </div>
+              <span className="text-lg font-extrabold tracking-tight text-text-main">RefCheck</span>
             </div>
-            <h1 className="text-2xl font-black tracking-tight">RefCheck</h1>
+            <nav className="hidden md:flex gap-8">
+              <a className="text-sm font-medium text-text-muted hover:text-primary transition-colors" href="#">Product</a>
+              <button onClick={() => onNavigate(AppView.PRICING)} className="text-sm font-medium text-text-muted hover:text-primary transition-colors">Pricing</button>
+            </nav>
+            <div className="flex items-center gap-3">
+              <button onClick={() => onNavigate(AppView.SIGNUP)} className="flex items-center justify-center rounded-lg bg-primary px-4 py-2 text-sm font-bold text-white transition-all hover:bg-primary-dark shadow-subtle hover:shadow-card">Get Started</button>
+            </div>
           </div>
-          <h2 className="text-3xl font-black text-slate-900 tracking-tight">Welcome back</h2>
-          <p className="text-slate-500 font-medium mt-2">Log in to your academic dashboard</p>
         </div>
+      </header>
+
+      {/* Main Content */}
+      <div className="flex-1 flex items-center justify-center p-6 bg-slate-50">
+        <div className="w-full max-w-md">
+          <div className="text-center mb-10">
+            <h2 className="text-3xl font-black text-slate-900 tracking-tight">Welcome back</h2>
+            <p className="text-slate-500 font-medium mt-2">Log in to your academic dashboard</p>
+          </div>
 
         <div className="bg-white rounded-3xl border border-border-light shadow-xl p-8 lg:p-10">
           <button 
@@ -172,6 +189,44 @@ const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, onAuthSuccess }) => {
         </p>
       </div>
     </div>
+
+    {/* Footer */}
+    <footer className="border-t border-border-light bg-background-light pt-16 pb-8">
+      <div className="mx-auto max-w-[1280px] px-4 sm:px-6 lg:px-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
+          <div>
+            <div className="flex items-center gap-2 mb-4">
+              <div className="flex items-center justify-center size-6 rounded bg-primary/10 text-primary">
+                <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>library_books</span>
+              </div>
+              <span className="text-base font-extrabold text-text-main">RefCheck</span>
+            </div>
+            <p className="text-sm text-text-muted mb-4">The standard for bibliography verification in academic research.</p>
+            <p className="text-xs text-text-muted leading-relaxed">
+              Created by PhD researchers who understood the frustration of tracking down bibliography errors in academic papers. 
+              What started as a personal tool to verify references has evolved into a comprehensive platform trusted by researchers worldwide.
+            </p>
+          </div>
+          <div className="flex flex-col justify-between">
+            <div>
+              <h4 className="font-bold text-text-main mb-4">Quick Links</h4>
+              <ul className="space-y-2 text-sm text-text-muted">
+                <li><button onClick={() => onNavigate(AppView.PRICING)} className="hover:text-primary transition-colors">Pricing</button></li>
+                <li><a className="hover:text-primary transition-colors" href="#">About Us</a></li>
+              </ul>
+            </div>
+          </div>
+        </div>
+        <div className="border-t border-border-light pt-8 flex flex-col md:flex-row justify-between items-center gap-4 text-sm text-text-muted">
+          <p>© 2024 RefCheck Inc. All rights reserved.</p>
+          <div className="flex gap-6">
+            <button onClick={() => onNavigate(AppView.PRIVACY_POLICY)} className="hover:text-primary transition-colors">Privacy Policy</button>
+            <button onClick={() => onNavigate(AppView.TERMS_CONDITIONS)} className="hover:text-primary transition-colors">Terms of Service</button>
+          </div>
+        </div>
+      </div>
+    </footer>
+  </div>
   );
 };
 

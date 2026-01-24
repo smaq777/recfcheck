@@ -526,16 +526,50 @@ const ResultsOverview: React.FC<ResultsOverviewProps> = ({ onNavigate }) => {
 
   // Render issue badges
   const renderIssueBadges = (ref: ApiReference) => {
-    if (ref.status === 'retracted') {
+    const issues = ref.issues || [];
+    
+    // Check for critical issues from OpenAlex API
+    const hasRetraction = issues.some(issue => 
+      issue.includes('⚠️ RETRACTED PAPER') || 
+      issue.toLowerCase().includes('retracted')
+    );
+    const hasPreprint = issues.some(issue => 
+      issue.includes('⚠️ PREPRINT') || 
+      issue.toLowerCase().includes('not peer-reviewed')
+    );
+    
+    // CRITICAL: Show retraction badge (highest priority)
+    if (ref.status === 'retracted' || hasRetraction) {
       return (
-        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-error/10 text-error border border-error/20">
-          Retracted
-        </span>
+        <div className="flex flex-wrap gap-2">
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold bg-red-100 text-red-800 border-2 border-red-300 shadow-sm">
+            <span className="material-symbols-outlined text-[16px]">block</span>
+            RETRACTED
+          </span>
+          {hasPreprint && (
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-xs font-medium bg-amber-50 text-amber-700 border border-amber-200">
+              <span className="material-symbols-outlined text-[14px]">warning</span>
+              Preprint
+            </span>
+          )}
+        </div>
+      );
+    }
+    
+    // IMPORTANT: Show preprint badge (high priority)
+    if (hasPreprint) {
+      return (
+        <div className="flex flex-wrap gap-2">
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold bg-amber-100 text-amber-800 border-2 border-amber-300 shadow-sm">
+            <span className="material-symbols-outlined text-[16px]">science</span>
+            PREPRINT
+          </span>
+          <span className="text-[10px] text-amber-600 font-medium">Not Peer-Reviewed</span>
+        </div>
       );
     }
 
     // Check if this reference was corrected by user
-    const issues = ref.issues || [];
     const hasCorrectedBadge = issues.some(issue => issue.startsWith('✓ Corrected'));
     const hasNeedsReviewBadge = issues.some(issue => issue.includes('Needs review'));
 
@@ -568,13 +602,18 @@ const ResultsOverview: React.FC<ResultsOverviewProps> = ({ onNavigate }) => {
     }
 
     // Show first 2 issues (original behavior for uncorrected issues)
-    const displayIssues = issues.slice(0, 2);
+    // Filter out retraction/preprint issues since we handle them above
+    const filteredIssues = issues.filter(issue => 
+      !issue.includes('⚠️ RETRACTED') && 
+      !issue.includes('⚠️ PREPRINT')
+    );
+    const displayIssues = filteredIssues.slice(0, 2);
+    
     return (
       <div className="flex flex-wrap gap-2">
         {displayIssues.map((issue, i) => {
           let colorClass = "bg-warning/10 text-warning border-warning/20";
-          if (issue.toLowerCase().includes("retracted") ||
-            issue.toLowerCase().includes("missing") ||
+          if (issue.toLowerCase().includes("missing") ||
             issue.toLowerCase().includes("not found")) {
             colorClass = "bg-error/10 text-error border-error/20";
           }
@@ -588,8 +627,8 @@ const ResultsOverview: React.FC<ResultsOverviewProps> = ({ onNavigate }) => {
             </span>
           );
         })}
-        {issues.length > 2 && (
-          <span className="text-xs text-slate-400">+{issues.length - 2} more</span>
+        {filteredIssues.length > 2 && (
+          <span className="text-xs text-slate-400">+{filteredIssues.length - 2} more</span>
         )}
       </div>
     );
@@ -616,17 +655,107 @@ const ResultsOverview: React.FC<ResultsOverviewProps> = ({ onNavigate }) => {
 
   if (error) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background-light dark:bg-background-dark">
-        <div className="text-center space-y-4 max-w-md">
-          <span className="material-symbols-outlined text-6xl text-error">error</span>
-          <h2 className="text-2xl font-black text-slate-900 dark:text-white">Error Loading Results</h2>
-          <p className="text-slate-600 dark:text-slate-400">{error}</p>
-          <button
-            onClick={() => onNavigate(AppView.NEW_CHECK)}
-            className="px-6 py-3 bg-primary text-white font-bold rounded-lg hover:bg-primary-dark"
-          >
-            Upload New File
-          </button>
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-blue-50 dark:bg-gradient-to-br dark:from-slate-900 dark:to-slate-800 p-6">
+        <div className="max-w-3xl w-full">
+          <div className="bg-white dark:bg-slate-800 rounded-3xl shadow-2xl p-8 lg:p-12 border border-slate-200 dark:border-slate-700">
+            {/* Welcome Icon */}
+            <div className="flex justify-center mb-6">
+              <div className="size-20 rounded-full bg-primary/10 flex items-center justify-center">
+                <span className="material-symbols-outlined text-5xl text-primary">library_books</span>
+              </div>
+            </div>
+
+            {/* Welcome Message */}
+            <div className="text-center mb-8">
+              <h1 className="text-4xl font-black text-slate-900 dark:text-white mb-3">
+                Welcome to RefCheck! 👋
+              </h1>
+              <p className="text-lg text-slate-600 dark:text-slate-300">
+                Let's verify your first bibliography together
+              </p>
+            </div>
+
+            {/* How It Works */}
+            <div className="space-y-6 mb-8">
+              <h2 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                <span className="material-symbols-outlined text-primary">info</span>
+                How RefCheck Works
+              </h2>
+              
+              <div className="grid md:grid-cols-3 gap-4">
+                <div className="bg-slate-50 dark:bg-slate-700/50 p-6 rounded-xl border border-slate-200 dark:border-slate-600">
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="size-8 rounded-lg bg-primary text-white flex items-center justify-center font-bold">1</div>
+                    <h3 className="font-bold text-slate-900 dark:text-white">Upload</h3>
+                  </div>
+                  <p className="text-sm text-slate-600 dark:text-slate-300">
+                    Upload your document (.bib, .pdf, .tex) containing references
+                  </p>
+                </div>
+
+                <div className="bg-slate-50 dark:bg-slate-700/50 p-6 rounded-xl border border-slate-200 dark:border-slate-600">
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="size-8 rounded-lg bg-primary text-white flex items-center justify-center font-bold">2</div>
+                    <h3 className="font-bold text-slate-900 dark:text-white">Analyze</h3>
+                  </div>
+                  <p className="text-sm text-slate-600 dark:text-slate-300">
+                    We verify each reference against academic databases
+                  </p>
+                </div>
+
+                <div className="bg-slate-50 dark:bg-slate-700/50 p-6 rounded-xl border border-slate-200 dark:border-slate-600">
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="size-8 rounded-lg bg-primary text-white flex items-center justify-center font-bold">3</div>
+                    <h3 className="font-bold text-slate-900 dark:text-white">Review</h3>
+                  </div>
+                  <p className="text-sm text-slate-600 dark:text-slate-300">
+                    Get detailed results with issues, corrections, and insights
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Supported Formats */}
+            <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-6 mb-8">
+              <h3 className="font-bold text-slate-900 dark:text-white mb-3 flex items-center gap-2">
+                <span className="material-symbols-outlined text-blue-600">description</span>
+                Supported Formats
+              </h3>
+              <div className="flex flex-wrap gap-3">
+                <span className="px-3 py-1 bg-white dark:bg-slate-700 rounded-lg text-sm font-semibold text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-600">
+                  .bib (BibTeX)
+                </span>
+                <span className="px-3 py-1 bg-white dark:bg-slate-700 rounded-lg text-sm font-semibold text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-600">
+                  .pdf (PDF Documents)
+                </span>
+                <span className="px-3 py-1 bg-white dark:bg-slate-700 rounded-lg text-sm font-semibold text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-600">
+                  .tex (LaTeX)
+                </span>
+              </div>
+            </div>
+
+            {/* CTA Button */}
+            <div className="text-center">
+              <button
+                onClick={() => onNavigate(AppView.NEW_CHECK)}
+                className="group inline-flex items-center gap-3 px-8 py-4 bg-primary text-white font-bold text-lg rounded-xl hover:bg-primary-dark transition-all shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/30 hover:scale-105"
+              >
+                <span className="material-symbols-outlined text-2xl">upload_file</span>
+                Upload Your First Document
+                <span className="material-symbols-outlined text-2xl group-hover:translate-x-1 transition-transform">arrow_forward</span>
+              </button>
+              <p className="text-sm text-slate-500 dark:text-slate-400 mt-4">
+                Free account: 5 checks per month • No credit card required
+              </p>
+            </div>
+          </div>
+
+          {/* Quick Tips */}
+          <div className="mt-6 text-center">
+            <p className="text-sm text-slate-600 dark:text-slate-400">
+              💡 <span className="font-semibold">Pro tip:</span> The more complete your bibliography, the better our verification!
+            </p>
+          </div>
         </div>
       </div>
     );
@@ -718,7 +847,25 @@ const ResultsOverview: React.FC<ResultsOverviewProps> = ({ onNavigate }) => {
             </div>
 
             {/* Stats Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+              {/* Total References */}
+              <div
+                onClick={() => setActiveFilter('all')}
+                className={`relative overflow-hidden rounded-xl bg-gradient-to-br from-primary/10 to-primary/5 dark:from-primary/20 dark:to-primary/10 p-5 border-2 border-primary/30 shadow-soft group cursor-pointer hover:border-primary transition-colors ${activeFilter === 'all' ? 'ring-2 ring-primary border-transparent shadow-lg' : ''}`}
+              >
+                <div className="absolute right-0 top-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                  <span className="material-symbols-outlined text-primary text-6xl">library_books</span>
+                </div>
+                <p className="text-primary font-bold text-sm mb-1 uppercase tracking-wider">Total References</p>
+                <div className="flex items-baseline gap-2">
+                  <span className="text-3xl font-bold text-slate-900 dark:text-white tracking-tight">{stats.all}</span>
+                  <span className="text-xs text-slate-600 dark:text-slate-400">detected</span>
+                </div>
+                <div className="w-full bg-primary/20 h-1 mt-3 rounded-full overflow-hidden">
+                  <div className="bg-primary h-full rounded-full" style={{ width: '100%' }}></div>
+                </div>
+              </div>
+
               {/* Verified */}
               <div
                 onClick={() => setActiveFilter('verified')}

@@ -71,7 +71,30 @@ const VerifyEmailPage: React.FC<VerifyEmailPageProps> = ({ userEmail, onNavigate
   };
 
   return (
-    <div className="flex-1 flex items-center justify-center p-6 bg-slate-50">
+    <div className="relative flex flex-col min-h-screen w-full">
+      {/* Header */}
+      <header className="sticky top-0 z-50 w-full border-b border-border-light bg-white/80 backdrop-blur-md">
+        <div className="mx-auto max-w-[1280px] px-4 sm:px-6 lg:px-8">
+          <div className="flex h-16 items-center justify-between">
+            <div 
+              className="flex items-center gap-2 cursor-pointer" 
+              onClick={() => onNavigate(AppView.LANDING)}
+            >
+              <div className="flex items-center justify-center size-8 rounded bg-primary/10 text-primary">
+                <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>library_books</span>
+              </div>
+              <span className="text-lg font-extrabold tracking-tight text-text-main">RefCheck</span>
+            </div>
+            <nav className="hidden md:flex gap-8">
+              <a className="text-sm font-medium text-text-muted hover:text-primary transition-colors" href="#">Product</a>
+              <button onClick={() => onNavigate(AppView.PRICING)} className="text-sm font-medium text-text-muted hover:text-primary transition-colors">Pricing</button>
+            </nav>
+          </div>
+        </div>
+      </header>
+
+      {/* Main Content */}
+      <div className="flex-1 flex items-center justify-center p-6 bg-slate-50">
       <div className="w-full max-w-md">
         <div className="bg-white rounded-3xl border border-border-light shadow-xl p-10 text-center">
           <div className="size-20 rounded-full bg-amber-50 text-warning flex items-center justify-center mx-auto mb-8 animate-pulse">
@@ -134,6 +157,44 @@ const VerifyEmailPage: React.FC<VerifyEmailPageProps> = ({ userEmail, onNavigate
         </div>
       </div>
     </div>
+
+    {/* Footer */}
+    <footer className="border-t border-border-light bg-background-light pt-16 pb-8">
+      <div className="mx-auto max-w-[1280px] px-4 sm:px-6 lg:px-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
+          <div>
+            <div className="flex items-center gap-2 mb-4">
+              <div className="flex items-center justify-center size-6 rounded bg-primary/10 text-primary">
+                <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>library_books</span>
+              </div>
+              <span className="text-base font-extrabold text-text-main">RefCheck</span>
+            </div>
+            <p className="text-sm text-text-muted mb-4">The standard for bibliography verification in academic research.</p>
+            <p className="text-xs text-text-muted leading-relaxed">
+              Created by PhD researchers who understood the frustration of tracking down bibliography errors in academic papers. 
+              What started as a personal tool to verify references has evolved into a comprehensive platform trusted by researchers worldwide.
+            </p>
+          </div>
+          <div className="flex flex-col justify-between">
+            <div>
+              <h4 className="font-bold text-text-main mb-4">Quick Links</h4>
+              <ul className="space-y-2 text-sm text-text-muted">
+                <li><button onClick={() => onNavigate(AppView.PRICING)} className="hover:text-primary transition-colors">Pricing</button></li>
+                <li><a className="hover:text-primary transition-colors" href="#">About Us</a></li>
+              </ul>
+            </div>
+          </div>
+        </div>
+        <div className="border-t border-border-light pt-8 flex flex-col md:flex-row justify-between items-center gap-4 text-sm text-text-muted">
+          <p>© 2024 RefCheck Inc. All rights reserved.</p>
+          <div className="flex gap-6">
+            <button onClick={() => onNavigate(AppView.PRIVACY_POLICY)} className="hover:text-primary transition-colors">Privacy Policy</button>
+            <button onClick={() => onNavigate(AppView.TERMS_CONDITIONS)} className="hover:text-primary transition-colors">Terms of Service</button>
+          </div>
+        </div>
+      </div>
+    </footer>
+  </div>
   );
 };
 

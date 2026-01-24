@@ -115,8 +115,11 @@ function extractReferencesFromText(text: string): ParsedReference[] {
   // Pattern 3: Year extraction (YYYY) in parentheses or standalone
   const yearRegex = /\((\d{4})[a-z]?\)|,?\s*(\d{4})[a-z]?[,;\.\s]/;
   
-  // Pattern 4: Author extraction - Last name, First initial(s) or First Last format
+  // Pattern 4: Author extraction - IMPROVED to capture ALL comma-separated authors
   const authorPatterns = [
+    // Guellil, I., Saâdane, H., Azouaou, F., ... - Multiple (Last, Initial.) patterns
+    // This captures: LastName, I., LastName, I., LastName, I., etc.
+    /^([A-ZÀ-ÿ][a-zà-ÿ]+(?:-[A-ZÀ-ÿ][a-zà-ÿ]+)?(?:,\s*[A-ZÀ-ÿ]\.?)+(?:,\s+[A-ZÀ-ÿ][a-zà-ÿ]+(?:-[A-ZÀ-ÿ][a-zà-ÿ]+)?(?:,\s*[A-ZÀ-ÿ]\.?)+)*(?:,?\s+(?:and|et\s+al\.?))?)/i,
     // Smith, J., Jones, A. B., and Brown, C.
     /^([A-Z][a-z]+(?:-[A-Z][a-z]+)?(?:,\s+[A-Z]\.(?:\s+[A-Z]\.)?)+(?:,?\s+and\s+[A-Z][a-z]+(?:,\s+[A-Z]\.)+)?)/,
     // Smith J, Jones AB, Brown C

@@ -655,32 +655,57 @@ const ReferenceDetailDrawer: React.FC<ReferenceDetailDrawerProps> = ({
                 </h4>
                 <div className="space-y-2.5">
                   {reference.issues.map((issue, idx) => {
-                    // Determine severity based on keywords
-                    const isCritical = issue.toLowerCase().includes('retracted') || issue.toLowerCase().includes('critical');
-                    const isMajor = issue.toLowerCase().includes('mismatch') || issue.toLowerCase().includes('incorrect') || issue.toLowerCase().includes('major');
-                    const isMinor = !isCritical && !isMajor;
+                    // Determine severity based on keywords with enhanced detection
+                    const isRetracted = issue.includes('⚠️ RETRACTED PAPER') || issue.toLowerCase().includes('retracted');
+                    const isPreprint = issue.includes('⚠️ PREPRINT') || (issue.toLowerCase().includes('preprint') && issue.toLowerCase().includes('not peer-reviewed'));
+                    const isCritical = isRetracted || issue.toLowerCase().includes('critical');
+                    const isMajor = !isCritical && !isPreprint && (issue.toLowerCase().includes('mismatch') || issue.toLowerCase().includes('incorrect') || issue.toLowerCase().includes('major'));
+                    const isMinor = !isCritical && !isMajor && !isPreprint;
 
                     return (
                       <div
                         key={idx}
-                        className={`flex items-start gap-3 p-4 rounded-lg border ${isCritical ? 'bg-error/5 border-error/20' :
+                        className={`flex items-start gap-3 p-4 rounded-lg border ${
+                          isRetracted ? 'bg-red-50 border-red-300 shadow-sm' :
+                          isPreprint ? 'bg-amber-50 border-amber-300 shadow-sm' :
+                          isCritical ? 'bg-error/5 border-error/20' :
                           isMajor ? 'bg-warning/5 border-warning/20' :
                             'bg-blue-50/50 dark:bg-blue-900/10 border-blue-200/50 dark:border-blue-800/50'
                           }`}
                       >
-                        <div className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 ${isCritical ? 'bg-error/10' :
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${
+                          isRetracted ? 'bg-red-100' :
+                          isPreprint ? 'bg-amber-100' :
+                          isCritical ? 'bg-error/10' :
                           isMajor ? 'bg-warning/10' :
                             'bg-blue-100 dark:bg-blue-900/30'
                           }`}>
-                          <span className={`material-symbols-outlined text-[16px] ${isCritical ? 'text-error' :
+                          <span className={`material-symbols-outlined text-[18px] ${
+                            isRetracted ? 'text-red-700' :
+                            isPreprint ? 'text-amber-700' :
+                            isCritical ? 'text-error' :
                             isMajor ? 'text-warning' :
                               'text-blue-600 dark:text-blue-400'
                             }`}>
-                            {isCritical ? 'cancel' : isMajor ? 'warning' : 'info'}
+                            {isRetracted ? 'block' : 
+                             isPreprint ? 'science' :
+                             isCritical ? 'cancel' : 
+                             isMajor ? 'warning' : 'info'}
                           </span>
                         </div>
                         <div className="flex-1">
-                          <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed">{issue}</p>
+                          <p className={`text-sm leading-relaxed ${
+                            isRetracted ? 'text-red-900 font-semibold' :
+                            isPreprint ? 'text-amber-900 font-semibold' :
+                            'text-slate-700 dark:text-slate-300'
+                          }`}>
+                            {issue}
+                          </p>
+                          {isPreprint && (
+                            <p className="text-xs text-amber-700 mt-1">
+                              This paper has not undergone formal peer review. Verify findings independently.
+                            </p>
+                          )}
                         </div>
                       </div>
                     );
@@ -691,16 +716,24 @@ const ReferenceDetailDrawer: React.FC<ReferenceDetailDrawerProps> = ({
 
             {/* Retraction Warning */}
             {reference.is_retracted && (
-              <div className="bg-error/5 border-2 border-error/30 rounded-lg p-6">
+              <div className="bg-red-50 border-2 border-red-400 rounded-lg p-6 shadow-md">
                 <div className="flex items-start gap-4">
-                  <div className="w-12 h-12 rounded-full bg-error/10 flex items-center justify-center shrink-0">
-                    <span className="material-symbols-outlined text-error text-[28px]">report</span>
+                  <div className="w-14 h-14 rounded-full bg-red-100 flex items-center justify-center shrink-0">
+                    <span className="material-symbols-outlined text-red-700 text-[32px]">block</span>
                   </div>
-                  <div>
-                    <h4 className="text-error font-bold text-lg mb-1">Retracted Paper</h4>
-                    <p className="text-slate-700 dark:text-slate-300 text-sm leading-relaxed">
-                      This paper has been retracted and should not be cited. Please remove it from your bibliography or replace it with an alternative source.
+                  <div className="flex-1">
+                    <h4 className="text-red-900 font-bold text-xl mb-2 flex items-center gap-2">
+                      ⚠️ Retracted Paper - Do Not Cite
+                    </h4>
+                    <p className="text-red-800 text-sm leading-relaxed mb-3">
+                      This paper has been officially retracted from the academic literature and should <strong>not be cited</strong> in your work. Retraction indicates serious concerns about the paper's validity, methodology, or integrity.
                     </p>
+                    <div className="bg-white/50 rounded-md p-3 border border-red-200">
+                      <p className="text-xs text-red-900 font-semibold mb-1">⚠️ Recommended Action:</p>
+                      <p className="text-xs text-red-800">
+                        Remove this reference from your bibliography immediately or replace it with a validated alternative source. Citing retracted papers may harm the credibility of your research.
+                      </p>
+                    </div>
                   </div>
                 </div>
               </div>

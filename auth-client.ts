@@ -16,7 +16,7 @@ console.log('[Auth] Using API base:', API_BASE);
  * Sign up with email and password
  * Backend sends verification email via Resend
  */
-export async function signupWithEmail(email: string, password: string, displayName: string): Promise<AuthUser & { verificationCode?: string }> {
+export async function signupWithEmail(email: string, password: string, displayName: string): Promise<AuthUser> {
   try {
     const response = await fetch(`${API_BASE}/api/auth/signup`, {
       method: 'POST',
@@ -30,20 +30,7 @@ export async function signupWithEmail(email: string, password: string, displayNa
     }
 
     const data = await response.json();
-
-    console.log('[Signup] Full response keys:', Object.keys(data));
-    console.log('[Signup] Full response:', JSON.stringify(data, null, 2));
-    console.log('[Signup] User object:', data.user);
-    console.log('[Signup] verificationCodeForTesting field:', data.verificationCodeForTesting);
-    console.log('[Signup] Type of verificationCodeForTesting:', typeof data.verificationCodeForTesting);
-
-    const verificationCode = data.verificationCodeForTesting;
-    console.log('[Signup] Extracted code:', verificationCode);
-    
-    const result = { ...data.user, verificationCode: verificationCode };
-    console.log('[Signup] Returning result with code:', result.verificationCode);
-    
-    return result;
+    return data.user;
   } catch (error: any) {
     console.error('[Signup Error]', error);
     throw new Error(error.message || 'Failed to sign up. Please check your internet connection and try again.');

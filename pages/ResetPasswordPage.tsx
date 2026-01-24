@@ -1,22 +1,21 @@
 
 import React, { useState, useEffect } from 'react';
-import { AppView, UserProfile } from '../types';
-import { signupWithEmail } from '../auth-client';
+import { AppView } from '../types';
+import { resetPassword } from '../auth-client';
 
-interface SignupPageProps {
+interface ResetPasswordPageProps {
   onNavigate: (view: AppView) => void;
-  onAuthSuccess: (user: UserProfile, code?: string) => void;
 }
 
-const SignupPage: React.FC<SignupPageProps> = ({ onNavigate, onAuthSuccess }) => {
+const ResetPasswordPage: React.FC<ResetPasswordPageProps> = ({ onNavigate }) => {
   const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [code, setCode] = useState('');
+  const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [displayName, setDisplayName] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [showVerificationNotice, setShowVerificationNotice] = useState(false);
+  const [isSuccess, setIsSuccess] = useState(false);
 
   const [validations, setValidations] = useState({
     length: false,
@@ -25,64 +24,70 @@ const SignupPage: React.FC<SignupPageProps> = ({ onNavigate, onAuthSuccess }) =>
     special: false
   });
 
+  // Extract email and code from URL on mount
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const urlEmail = params.get('email');
+    const urlCode = params.get('code');
+    
+    if (urlEmail) setEmail(decodeURIComponent(urlEmail));
+    if (urlCode) setCode(urlCode);
+  }, []);
+
   useEffect(() => {
     setValidations({
-      length: password.length >= 8,
-      upper: /[A-Z]/.test(password),
-      number: /[0-9]/.test(password),
-      special: /[^A-Za-z0-9]/.test(password)
+      length: newPassword.length >= 8,
+      upper: /[A-Z]/.test(newPassword),
+      number: /[0-9]/.test(newPassword),
+      special: /[^A-Za-z0-9]/.test(newPassword)
     });
-  }, [password]);
+  }, [newPassword]);
 
-  const isFormValid = validations.length && validations.upper && validations.number && validations.special && password === confirmPassword && email && displayName;
+  const isFormValid = validations.length && validations.upper && validations.number && validations.special && newPassword === confirmPassword && email && code;
 
-  const handleGoogleSignup = () => {
-    // TODO: Implement Google OAuth signup
-    console.log('Google signup not yet implemented');
-  };
-
-  const handleSignup = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!isFormValid) return;
+    
     setIsLoading(true);
     setError(null);
     
     try {
-      const authUser = await signupWithEmail(email, password, displayName);
-      
-      setShowVerificationNotice(true);
-      
-      // Create user profile
-      const user: UserProfile = {
-        uid: authUser.id,
-        email: authUser.email,
-        displayName: authUser.displayName,
-        photoURL: authUser.photoURL,
-        provider: 'email',
-        emailVerified: false,
-        createdAt: authUser.createdAt,
-        settings: {
-          strictness: 'standard',
-          autoFill: true,
-          dedupe: true,
-          dataRetention: 24
-        },
-        subscription: {
-          plan: 'free',
-          checksThisMonth: 0,
-          maxChecksPerMonth: 5
-        }
-      };
-      
-      // Navigate to verification page (code sent via email)
-      onAuthSuccess(user);
+      await resetPassword(email, code, newPassword);
+      setIsSuccess(true);
     } catch (err: any) {
-      setError(err.message || 'Signup failed. Please try again.');
-      console.error('Signup error:', err);
+      setError(err.message || 'Password reset failed. Please try again or request a new reset link.');
+      console.error('Password reset error:', err);
     } finally {
       setIsLoading(false);
     }
   };
+
+  if (isSuccess) {
+    return (
+      <div className="flex-1 flex items-center justify-center p-6 bg-slate-50">
+        <div className="w-full max-w-md">
+          <div className="bg-white rounded-3xl border border-border-light shadow-xl p-8 lg:p-10">
+            <div className="text-center py-6">
+              <div className="size-20 rounded-full bg-green-50 text-success flex items-center justify-center mx-auto mb-6">
+                <span className="material-symbols-outlined text-[40px]">check_circle</span>
+              </div>
+              <h2 className="text-3xl font-black text-slate-900 tracking-tight">Password reset successful!</h2>
+              <p className="text-slate-500 font-medium mt-4 leading-relaxed">
+                Your password has been updated. You can now log in with your new password.
+              </p>
+              <button 
+                onClick={() => onNavigate(AppView.LOGIN)} 
+                className="mt-8 w-full h-14 rounded-xl bg-primary text-white font-black text-lg shadow-xl shadow-primary/20 hover:bg-primary-hover transition-all"
+              >
+                Go to Login
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="relative flex flex-col min-h-screen w-full">
@@ -114,22 +119,11 @@ const SignupPage: React.FC<SignupPageProps> = ({ onNavigate, onAuthSuccess }) =>
       <div className="flex-1 flex items-center justify-center p-6 bg-slate-50">
         <div className="w-full max-w-md">
           <div className="text-center mb-10">
-            <h2 className="text-3xl font-black text-slate-900 tracking-tight">Create your account</h2>
-            <p className="text-slate-500 font-medium mt-2">Join 10,000+ academic researchers</p>
+            <h2 className="text-3xl font-black text-slate-900 tracking-tight">Reset your password</h2>
+            <p className="text-slate-500 font-medium mt-2">Enter your new password below</p>
           </div>
 
         <div className="bg-white rounded-3xl border border-border-light shadow-xl p-8 lg:p-10">
-          <button onClick={handleGoogleSignup} disabled={isLoading} className="w-full flex items-center justify-center gap-3 h-14 rounded-xl border border-border-light bg-white text-slate-700 font-bold hover:bg-slate-50 transition-all shadow-sm mb-6">
-            <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/action/google.svg" className="w-5 h-5" alt="Google" />
-            Sign up with Google
-          </button>
-
-          <div className="flex items-center gap-3 mb-6">
-            <span className="h-px flex-1 bg-border-light"></span>
-            <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">or use email</span>
-            <span className="h-px flex-1 bg-border-light"></span>
-          </div>
-
           {error && (
             <div className="mb-6 p-4 rounded-xl bg-red-50 text-error text-sm font-bold border border-red-100 flex items-center gap-3">
               <span className="material-symbols-outlined text-lg">error</span>
@@ -137,22 +131,34 @@ const SignupPage: React.FC<SignupPageProps> = ({ onNavigate, onAuthSuccess }) =>
             </div>
           )}
 
-          <form onSubmit={handleSignup} className="space-y-6">
-            <div className="space-y-2">
-              <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Full Name</label>
-              <input type="text" required value={displayName} onChange={(e) => setDisplayName(e.target.value)} placeholder="Your name" className="w-full h-12 px-4 rounded-xl border-border-light bg-slate-50 focus:bg-white focus:ring-2 focus:ring-primary/20 transition-all font-medium" />
-            </div>
-
+          <form onSubmit={handleSubmit} className="space-y-6">
             <div className="space-y-2">
               <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Email Address</label>
-              <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} className="w-full h-12 px-4 rounded-xl border-border-light bg-slate-50 focus:bg-white focus:ring-2 focus:ring-primary/20 transition-all font-medium" />
+              <input 
+                type="email" 
+                required 
+                value={email} 
+                onChange={(e) => setEmail(e.target.value)} 
+                disabled
+                className="w-full h-12 px-4 rounded-xl border-border-light bg-slate-50 font-medium disabled:opacity-50 disabled:cursor-not-allowed" 
+              />
             </div>
 
             <div className="space-y-2">
-              <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Create Password</label>
+              <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">New Password</label>
               <div className="relative">
-                <input type={showPassword ? "text" : "password"} required value={password} onChange={(e) => setPassword(e.target.value)} className="w-full h-12 px-4 pr-12 rounded-xl border-border-light bg-slate-50 focus:bg-white focus:ring-2 focus:ring-primary/20 transition-all font-medium" />
-                <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+                <input 
+                  type={showPassword ? "text" : "password"} 
+                  required 
+                  value={newPassword} 
+                  onChange={(e) => setNewPassword(e.target.value)} 
+                  className="w-full h-12 px-4 pr-12 rounded-xl border-border-light bg-slate-50 focus:bg-white focus:ring-2 focus:ring-primary/20 transition-all font-medium" 
+                />
+                <button 
+                  type="button" 
+                  onClick={() => setShowPassword(!showPassword)} 
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                >
                   <span className="material-symbols-outlined text-[20px]">{showPassword ? 'visibility_off' : 'visibility'}</span>
                 </button>
               </div>
@@ -178,27 +184,37 @@ const SignupPage: React.FC<SignupPageProps> = ({ onNavigate, onAuthSuccess }) =>
             </div>
 
             <div className="space-y-2">
-              <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Confirm Password</label>
-              <input type="password" required value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className="w-full h-12 px-4 rounded-xl border-border-light bg-slate-50 focus:bg-white focus:ring-2 focus:ring-primary/20 transition-all font-medium" />
-              {confirmPassword && password !== confirmPassword && <p className="text-[10px] text-error font-bold">Passwords do not match</p>}
+              <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Confirm New Password</label>
+              <input 
+                type="password" 
+                required 
+                value={confirmPassword} 
+                onChange={(e) => setConfirmPassword(e.target.value)} 
+                className="w-full h-12 px-4 rounded-xl border-border-light bg-slate-50 focus:bg-white focus:ring-2 focus:ring-primary/20 transition-all font-medium" 
+              />
+              {confirmPassword && newPassword !== confirmPassword && (
+                <p className="text-[10px] text-error font-bold">Passwords do not match</p>
+              )}
             </div>
 
-            <label className="flex items-start gap-3 cursor-pointer group">
-              <input type="checkbox" required className="mt-1 rounded border-border-light text-primary focus:ring-primary" />
-              <span className="text-xs text-slate-500 font-medium group-hover:text-slate-700">
-                I agree to the <a href="#" className="text-primary font-bold hover:underline">Terms of Service</a> and <a href="#" className="text-primary font-bold hover:underline">Privacy Policy</a>.
-              </span>
-            </label>
-
-            <button type="submit" disabled={isLoading || !isFormValid} className="w-full h-14 rounded-xl bg-primary text-white font-black text-lg shadow-xl shadow-primary/20 hover:bg-primary-hover transition-all flex items-center justify-center disabled:opacity-50">
-              {isLoading ? <div className="size-6 border-2 border-white border-t-transparent rounded-full animate-spin"></div> : 'Create Account'}
+            <button 
+              type="submit" 
+              disabled={isLoading || !isFormValid} 
+              className="w-full h-14 rounded-xl bg-primary text-white font-black text-lg shadow-xl shadow-primary/20 hover:bg-primary-hover transition-all flex items-center justify-center disabled:opacity-50"
+            >
+              {isLoading ? <div className="size-6 border-2 border-white border-t-transparent rounded-full animate-spin"></div> : 'Reset Password'}
             </button>
           </form>
+          
+          <div className="mt-6 text-center">
+            <button 
+              onClick={() => onNavigate(AppView.LOGIN)} 
+              className="text-primary font-bold text-sm hover:underline"
+            >
+              Back to Login
+            </button>
+          </div>
         </div>
-
-        <p className="text-center mt-8 text-sm font-medium text-slate-500">
-          Already have an account? <button onClick={() => onNavigate(AppView.LOGIN)} className="ml-2 text-primary font-bold hover:underline">Sign in</button>
-        </p>
       </div>
     </div>
 
@@ -242,4 +258,4 @@ const SignupPage: React.FC<SignupPageProps> = ({ onNavigate, onAuthSuccess }) =>
   );
 };
 
-export default SignupPage;
+export default ResetPasswordPage;

@@ -31,12 +31,29 @@ export async function verifyWithOpenAlex(reference) {
     const titleSimilarity = calculateSimilarity(reference.title, match.title);
     const yearMatch = reference.year === match.publication_year;
 
-    // CRITICAL: Reject matches with very low title similarity
-    // This prevents accepting random papers as "verified"
-    if (titleSimilarity < 60) {
+    // EXTREMELY PERMISSIVE: 20% threshold
+    // Accept any reasonable match - better false positive than false negative
+    if (titleSimilarity < 20) {
       console.log(`   ⚠️ OpenAlex: Title similarity too low (${titleSimilarity}%) - rejecting match`);
+      console.log(`      Your title: "${reference.title}"`);
+      console.log(`      Found title: "${match.title}"`);
       return { source: 'OpenAlex', found: false, confidence: 0 };
     }
+    
+    // BOOST confidence if DOI matches
+    if (reference.doi && match.doi) {
+      const doi1 = reference.doi.toLowerCase().replace(/[^0-9./]/g, '');
+      const doi2 = match.doi.toLowerCase().replace(/[^0-9./]/g, '');
+      if (doi1 === doi2 || doi1.includes(doi2) || doi2.includes(doi1)) {
+        console.log(`   🎯 OpenAlex: DOI MATCH FOUND - Boosting confidence to 100%`);
+        titleSimilarity = 100; // Override with perfect score
+      }
+    }
+    
+    // Log match for debugging
+    console.log(`   ✅ OpenAlex: Found match (${titleSimilarity}% similarity)`);
+    console.log(`      Your title: "${reference.title}"`);
+    console.log(`      Found title: "${match.title}"`);
 
     // Extract ALL authors from OpenAlex
     const allAuthors = match.authorships?.map(a => a.author.display_name).filter(Boolean) || [];
@@ -98,11 +115,24 @@ export async function verifyWithCrossref(reference) {
     const titleSimilarity = calculateSimilarity(reference.title, match.title?.[0] || '');
     const yearMatch = reference.year === parseInt(match.published?.['date-parts']?.[0]?.[0]);
 
-    // CRITICAL: Reject matches with very low title similarity
-    if (titleSimilarity < 60) {
+    // EXTREMELY PERMISSIVE: 20% threshold
+    if (titleSimilarity < 35) {
       console.log(`   ⚠️ Crossref: Title similarity too low (${titleSimilarity}%) - rejecting match`);
       return { source: 'Crossref', found: false, confidence: 0 };
     }
+    
+    // BOOST confidence if DOI matches
+    if (reference.doi && match.DOI) {
+      const doi1 = reference.doi.toLowerCase().replace(/[^0-9./]/g, '');
+      const doi2 = match.DOI.toLowerCase().replace(/[^0-9./]/g, '');
+      if (doi1 === doi2 || doi1.includes(doi2) || doi2.includes(doi1)) {
+        console.log(`   🎯 Crossref: DOI MATCH FOUND - Boosting confidence to 100%`);
+        titleSimilarity = 100;
+      }
+    }
+    
+    // Log match for debugging
+    console.log(`   ✅ Crossref: Found match (${titleSimilarity}% similarity)`);
 
     // Extract ALL authors from Crossref
     const allAuthors = match.author?.map(a => {
@@ -168,11 +198,24 @@ export async function verifyWithSemanticScholar(reference) {
     const titleSimilarity = calculateSimilarity(reference.title, match.title || '');
     const yearMatch = reference.year === match.year;
 
-    // CRITICAL: Reject matches with very low title similarity
-    if (titleSimilarity < 60) {
+    // EXTREMELY PERMISSIVE: 20% threshold
+    if (titleSimilarity < 35) {
       console.log(`   ⚠️ Semantic Scholar: Title similarity too low (${titleSimilarity}%) - rejecting match`);
       return { source: 'Semantic Scholar', found: false, confidence: 0 };
     }
+    
+    // BOOST confidence if DOI matches
+    if (reference.doi && match.externalIds?.DOI) {
+      const doi1 = reference.doi.toLowerCase().replace(/[^0-9./]/g, '');
+      const doi2 = match.externalIds.DOI.toLowerCase().replace(/[^0-9./]/g, '');
+      if (doi1 === doi2 || doi1.includes(doi2) || doi2.includes(doi1)) {
+        console.log(`   🎯 Semantic Scholar: DOI MATCH FOUND - Boosting confidence to 100%`);
+        titleSimilarity = 100;
+      }
+    }
+    
+    // Log match for debugging
+    console.log(`   ✅ Semantic Scholar: Found match (${titleSimilarity}% similarity)`);
 
     // Extract ALL authors from Semantic Scholar
     const allAuthors = match.authors?.map(a => a.name).filter(Boolean) || [];
@@ -405,15 +448,29 @@ export async function crossValidateReference(reference) {
  * 3. Otherwise = Different paper → Don't suggest correction
  */
 function checkIfSamePaper(originalReference, foundResult) {
-  // RULE 1: If DOIs match exactly - definitely the same paper
+  // RULE 1: If DOIs match exactly - definitely the same paper (HIGHEST PRIORITY)
   if (originalReference.doi && foundResult.doi) {
-    const doi1 = originalReference.doi.toLowerCase().trim().replace('https://doi.org/', '');
-    const doi2 = foundResult.doi.toLowerCase().trim().replace('https://doi.org/', '');
+    const doi1 = originalReference.doi.toLowerCase().trim()
+      .replace('https://doi.org/', '')
+      .replace('http://doi.org/', '')
+      .replace('doi:', '')
+      .replace(/\s+/g, '');
+    const doi2 = foundResult.doi.toLowerCase().trim()
+      .replace('https://doi.org/', '')
+      .replace('http://doi.org/', '')
+      .replace('doi:', '')
+      .replace(/\s+/g, '');
 
-    if (doi1 === doi2) {
-      console.log(`   ✅ DOI EXACT MATCH - Same paper: ${doi1}`);
+    if (doi1 === doi2 || doi1.includes(doi2) || doi2.includes(doi1)) {
+      console.log(`   ✅ DOI MATCH (EXACT OR PARTIAL) - Same paper: ${doi1}`);
       return true;
     }
+  }
+  
+  // RULE 1B: If API found DOI but user didn't provide one, check title+year match
+  // This handles incomplete user references
+  if (!originalReference.doi && foundResult.doi) {
+    console.log(`   ℹ️ API found DOI but user didn't provide - checking title/year...`);
   }
 
   // RULE 2: No DOI, but need STRONG evidence (title + author + year)
@@ -463,22 +520,40 @@ function checkIfSamePaper(originalReference, foundResult) {
   console.log(`   📊 Year match: ${yearMatch ? 'YES' : 'NO'} (${originalReference.year} vs ${foundResult.canonical_year})`);
   console.log(`   📊 Author match: ${authorMatch ? 'YES' : 'NO'}`);
 
-  // RELAXED RULES for better matching:
-  // Option 1: Very high title similarity + year match (even if author mismatch due to "et al.")
-  if (titleSimilarity > 85 && yearMatch) {
-    console.log(`   ✅ HIGH TITLE MATCH + YEAR - Same paper (possibly abbreviated authors)`);
+  // EXTREMELY RELAXED RULES (minimal false negatives):
+  // Option 1: Even moderate title + year is good enough
+  if (titleSimilarity > 50 && yearMatch) {
+    console.log(`   ✅ MODERATE TITLE + YEAR - Same paper`);
     return true;
   }
 
-  // Option 2: Perfect title + author match (even different year - could be preprint vs published)
-  if (titleSimilarity > 95 && authorMatch) {
-    console.log(`   ✅ PERFECT TITLE + AUTHOR MATCH - Same paper`);
+  // Option 2: High title + author (year can differ)
+  if (titleSimilarity > 75 && authorMatch) {
+    console.log(`   ✅ HIGH TITLE + AUTHOR - Same paper`);
     return true;
   }
 
-  // Option 3: Good match on all three
-  if (titleSimilarity > 75 && yearMatch && authorMatch) {
-    console.log(`   ✅ GOOD MATCH - Same paper with minor variations`);
+  // Option 3: Low bar for all three matching
+  if (titleSimilarity > 45 && yearMatch && authorMatch) {
+    console.log(`   ✅ WEAK MATCH BUT ALL FACTORS ALIGN - Same paper`);
+    return true;
+  }
+  
+  // Option 4: Year off by 1-2 but decent title
+  if (titleSimilarity > 60 && Math.abs(originalReference.year - foundResult.canonical_year) <= 2 && authorMatch) {
+    console.log(`   ✅ GOOD TITLE - Same paper (year off by 1-2)`);
+    return true;
+  }
+  
+  // Option 5: API has DOI and moderate title match
+  if (foundResult.doi && titleSimilarity > 55 && yearMatch) {
+    console.log(`   ✅ API HAS DOI + DECENT MATCH - Same paper`);
+    return true;
+  }
+  
+  // Option 6: Very low threshold if year and author both match
+  if (titleSimilarity > 35 && yearMatch && authorMatch) {
+    console.log(`   ✅ LOW TITLE BUT YEAR+AUTHOR MATCH - Same paper`);
     return true;
   }
 
@@ -499,20 +574,38 @@ function generateGoogleScholarUrl(reference) {
 
 /**
  * Calculate similarity between two strings (0-100)
- * Uses WORD-BASED matching to avoid false positives from character-level similarity
- * Example: "text-content using deep learning" vs "URLs detection" = LOW similarity
+ * IMPROVED: More forgiving for academic paper titles with subtitles, special formatting
  */
 function calculateSimilarity(str1, str2) {
   if (!str1 || !str2) return 0;
 
-  const s1 = str1.toLowerCase().trim();
-  const s2 = str2.toLowerCase().trim();
+  // Normalize: lowercase, trim, remove common stopwords and special chars
+  const normalize = (str) => str.toLowerCase()
+    .trim()
+    // Remove special punctuation but keep spaces
+    .replace(/[:\-–—()\[\]{}"'`]/g, ' ')
+    // Remove common academic words that don't help matching
+    .replace(/\b(a|an|the|of|for|in|on|at|to|with|by|from|and|or)\b/gi, ' ')
+    // Collapse multiple spaces
+    .replace(/\s+/g, ' ')
+    .trim();
+  
+  const s1 = normalize(str1);
+  const s2 = normalize(str2);
 
   if (s1 === s2) return 100;
 
-  // Extract words (alphanumeric only, remove punctuation)
-  const words1 = s1.split(/[^a-z0-9]+/).filter(w => w.length > 2);
-  const words2 = s2.split(/[^a-z0-9]+/).filter(w => w.length > 2);
+  // IMPROVEMENT 1: Check if one is substring of the other (handles subtitles)
+  // "SMS Phishing" should match "SMS Phishing Based on Arabic Text"
+  if (s1.includes(s2) || s2.includes(s1)) {
+    const shorter = s1.length < s2.length ? s1 : s2;
+    const longer = s1.length < s2.length ? s2 : s1;
+    return Math.round((shorter.length / longer.length) * 100);
+  }
+
+  // Extract words (keep words with 2+ chars, including numbers)
+  const words1 = s1.split(/\s+/).filter(w => w.length > 1 && /[a-z0-9]/.test(w));
+  const words2 = s2.split(/\s+/).filter(w => w.length > 1 && /[a-z0-9]/.test(w));
 
   if (words1.length === 0 || words2.length === 0) return 0;
 
@@ -527,11 +620,28 @@ function calculateSimilarity(str1, str2) {
     }
   }
 
+  // IMPROVEMENT 2: Also count partial word matches (for abbreviations, typos)
+  let partialMatches = 0;
+  for (const word1 of set1) {
+    for (const word2 of set2) {
+      if (word1.length >= 4 && word2.length >= 4) {
+        // Check if words overlap significantly (>70%)
+        const shorter = word1.length < word2.length ? word1 : word2;
+        const longer = word1.length < word2.length ? word2 : word1;
+        if (longer.includes(shorter) || shorter.includes(longer)) {
+          partialMatches += 0.5; // Half credit for partial match
+        }
+      }
+    }
+  }
+
+  matchCount += partialMatches;
+
   // Jaccard similarity: intersection / union
   const unionSize = set1.size + set2.size - matchCount;
   const jaccardSimilarity = (matchCount / unionSize) * 100;
 
-  // Also check word order similarity (for typo detection)
+  // Also check word order similarity (for exact phrase matching)
   let orderMatchCount = 0;
   const minLength = Math.min(words1.length, words2.length);
   for (let i = 0; i < minLength; i++) {
@@ -541,7 +651,7 @@ function calculateSimilarity(str1, str2) {
   }
   const orderSimilarity = (orderMatchCount / Math.max(words1.length, words2.length)) * 100;
 
-  // Combine both scores (Jaccard is more important)
+  // Combine scores (Jaccard more important, but order matters too)
   const finalSimilarity = (jaccardSimilarity * 0.7) + (orderSimilarity * 0.3);
 
   return Math.round(finalSimilarity);

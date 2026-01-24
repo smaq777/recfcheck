@@ -21,7 +21,6 @@ const LandingPage: React.FC<LandingPageProps> = ({ onNavigate }) => {
             <nav className="hidden md:flex gap-8">
               <a className="text-sm font-medium text-text-muted hover:text-primary transition-colors" href="#">Product</a>
               <button onClick={() => onNavigate(AppView.PRICING)} className="text-sm font-medium text-text-muted hover:text-primary transition-colors">Pricing</button>
-              <a className="text-sm font-medium text-text-muted hover:text-primary transition-colors" href="#">Security</a>
             </nav>
             <div className="flex items-center gap-3">
               <button onClick={() => onNavigate(AppView.LOGIN)} className="hidden sm:block text-sm font-bold text-text-main hover:text-primary transition-colors px-3 py-2">Log In</button>
@@ -343,46 +342,35 @@ const LandingPage: React.FC<LandingPageProps> = ({ onNavigate }) => {
       {/* Footer */}
       <footer className="border-t border-border-light bg-background-light dark:bg-background-dark dark:border-white/10 pt-16 pb-8">
         <div className="mx-auto max-w-[1280px] px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-12">
-            <div className="col-span-2 md:col-span-1">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
+            <div>
               <div className="flex items-center gap-2 mb-4">
                 <div className="flex items-center justify-center size-6 rounded bg-primary/10 text-primary">
                   <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>library_books</span>
                 </div>
                 <span className="text-base font-extrabold text-text-main dark:text-white">RefCheck</span>
               </div>
-              <p className="text-sm text-text-muted">The standard for bibliography verification in academic research.</p>
+              <p className="text-sm text-text-muted mb-4">The standard for bibliography verification in academic research.</p>
+              <p className="text-xs text-text-muted leading-relaxed">
+                Created by PhD researchers who understood the frustration of tracking down bibliography errors in academic papers. 
+                What started as a personal tool to verify references has evolved into a comprehensive platform trusted by researchers worldwide.
+              </p>
             </div>
-            <div>
-              <h4 className="font-bold text-text-main dark:text-white mb-4">Product</h4>
-              <ul className="space-y-2 text-sm text-text-muted">
-                <li><a className="hover:text-primary transition-colors" href="#">Features</a></li>
-                <li><button onClick={() => onNavigate(AppView.PRICING)} className="hover:text-primary transition-colors">Pricing</button></li>
-                <li><a className="hover:text-primary transition-colors" href="#">API</a></li>
-              </ul>
-            </div>
-            <div>
-              <h4 className="font-bold text-text-main dark:text-white mb-4">Resources</h4>
-              <ul className="space-y-2 text-sm text-text-muted">
-                <li><a className="hover:text-primary transition-colors" href="#">Documentation</a></li>
-                <li><a className="hover:text-primary transition-colors" href="#">Blog</a></li>
-                <li><a className="hover:text-primary transition-colors" href="#">Citation Guides</a></li>
-              </ul>
-            </div>
-            <div>
-              <h4 className="font-bold text-text-main dark:text-white mb-4">Company</h4>
-              <ul className="space-y-2 text-sm text-text-muted">
-                <li><a className="hover:text-primary transition-colors" href="#">About</a></li>
-                <li><a className="hover:text-primary transition-colors" href="#">Contact</a></li>
-                <li><a className="hover:text-primary transition-colors" href="#">Privacy</a></li>
-              </ul>
+            <div className="flex flex-col justify-between">
+              <div>
+                <h4 className="font-bold text-text-main dark:text-white mb-4">Quick Links</h4>
+                <ul className="space-y-2 text-sm text-text-muted">
+                  <li><button onClick={() => onNavigate(AppView.PRICING)} className="hover:text-primary transition-colors">Pricing</button></li>
+                  <li><a className="hover:text-primary transition-colors" href="#">About Us</a></li>
+                </ul>
+              </div>
             </div>
           </div>
           <div className="border-t border-border-light dark:border-white/10 pt-8 flex flex-col md:flex-row justify-between items-center gap-4 text-sm text-text-muted">
             <p>© 2024 RefCheck Inc. All rights reserved.</p>
             <div className="flex gap-6">
-              <a className="hover:text-primary transition-colors" href="#">Privacy Policy</a>
-              <a className="hover:text-primary transition-colors" href="#">Terms of Service</a>
+              <button onClick={() => onNavigate(AppView.PRIVACY_POLICY)} className="hover:text-primary transition-colors">Privacy Policy</button>
+              <button onClick={() => onNavigate(AppView.TERMS_CONDITIONS)} className="hover:text-primary transition-colors">Terms of Service</button>
             </div>
           </div>
         </div>

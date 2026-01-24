@@ -12,7 +12,10 @@ export enum AppView {
   LOGIN = 'login',
   SIGNUP = 'signup',
   FORGOT_PASSWORD = 'forgot-password',
-  VERIFY_EMAIL = 'verify-email'
+  RESET_PASSWORD = 'reset-password',
+  VERIFY_EMAIL = 'verify-email',
+  PRIVACY_POLICY = 'privacy-policy',
+  TERMS_CONDITIONS = 'terms-conditions'
 }
 
 export interface UserProfile {
