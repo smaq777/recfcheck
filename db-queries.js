@@ -240,8 +240,9 @@ export async function getReferenceById(referenceId) {
  * @param {Object} correctedData - Corrected reference data
  * @returns {Promise<Object>} Updated reference object
  */
-export async function updateReferenceDecision(referenceId, decision, correctedData = {}, manually_verified = false) {
+export async function updateReferenceDecision(referenceId, decision, userId = null, correctedData = {}, manually_verified = false) {
   console.log('[updateReferenceDecision] Updating reference:', referenceId, 'Decision:', decision);
+  console.log('[updateReferenceDecision] User ID:', userId);
   console.log('[updateReferenceDecision] Corrected data:', correctedData);
   console.log('[updateReferenceDecision] Manually verified:', manually_verified);
 
@@ -259,35 +260,67 @@ export async function updateReferenceDecision(referenceId, decision, correctedDa
       [referenceId, JSON.stringify(['⚠ Warning ignored by user - accepted as-is'])]
     );
 
+    // Log the ignored decision
+    try {
+      console.log(`[updateReferenceDecision] Logging ignored decision: ${decision}`);
+      await query(
+        `INSERT INTO reference_updates 
+         (reference_id, user_id, change_type, decision, manually_verified, created_at)
+         VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP)`,
+        [referenceId, userId || null, 'ignored', decision, true]
+      );
+      console.log(`[updateReferenceDecision] ✅ Successfully logged ignored decision: ${decision}`);
+    } catch (error) {
+      console.error(`[updateReferenceDecision] ❌ Failed to log ignored decision:`, error);
+    }
+
     console.log('[updateReferenceDecision] Ignored warning:', result.rows[0]);
     return result.rows[0];
   }
 
   // If accepted, apply canonical values or manual edits to the original fields
   if (decision === 'accepted' && correctedData) {
+    // Get current data for change tracking
+    const currentRefResult = await query(
+      'SELECT * FROM "references" WHERE id = $1',
+      [referenceId]
+    );
+
+    if (!currentRefResult.rows || currentRefResult.rows.length === 0) {
+      throw new Error('Reference not found');
+    }
+
+    const oldData = currentRefResult.rows[0];
+    const changes = [];
+
     // Calculate which fields were corrected for the issues array
     const correctedFields = [];
     const updates = {};
 
-    if (correctedData.title) {
+    if (correctedData.title && correctedData.title !== oldData.original_title) {
       updates.title = correctedData.title;
       correctedFields.push('title');
+      changes.push({ field: 'title', old: oldData.original_title || '', new: correctedData.title });
     }
-    if (correctedData.authors) {
+    if (correctedData.authors && correctedData.authors !== oldData.original_authors) {
       updates.authors = correctedData.authors;
       correctedFields.push('authors');
+      changes.push({ field: 'authors', old: oldData.original_authors || '', new: correctedData.authors });
     }
-    if (correctedData.year) {
+    if (correctedData.year && correctedData.year !== oldData.original_year) {
       updates.year = correctedData.year;
       correctedFields.push('year');
+      changes.push({ field: 'year', old: String(oldData.original_year || ''), new: String(correctedData.year) });
     }
-    if (correctedData.source) {
+    if (correctedData.source && correctedData.source !== oldData.original_source) {
       updates.source = correctedData.source;
       correctedFields.push('venue');
+      changes.push({ field: 'source', old: oldData.original_source || '', new: correctedData.source });
     }
-    if (correctedData.doi) {
+    if (correctedData.doi && correctedData.doi !== oldData.doi) {
       updates.doi = correctedData.doi;
       correctedFields.push('DOI');
+      changes.push({ field: 'doi', old: oldData.doi || '', new: correctedData.doi });
     }
 
     const result = await query(
@@ -324,6 +357,36 @@ export async function updateReferenceDecision(referenceId, decision, correctedDa
       ]
     );
 
+    // Log each field change
+    for (const change of changes) {
+      try {
+        console.log(`[updateReferenceDecision] Logging field change: ${change.field}: ${change.old} → ${change.new}`);
+        await query(
+          `INSERT INTO reference_updates 
+           (reference_id, user_id, change_type, field_name, old_value, new_value, decision, manually_verified, created_at)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, CURRENT_TIMESTAMP)`,
+          [referenceId, userId || null, 'field_updated', change.field, change.old, change.new, decision, manually_verified]
+        );
+        console.log(`[updateReferenceDecision] ✅ Successfully logged field change: ${change.field}`);
+      } catch (error) {
+        console.error(`[updateReferenceDecision] ❌ Failed to log field change:`, error);
+      }
+    }
+
+    // Log the overall acceptance
+    try {
+      console.log(`[updateReferenceDecision] Logging overall decision: ${decision}`);
+      await query(
+        `INSERT INTO reference_updates 
+         (reference_id, user_id, change_type, decision, manually_verified, created_at)
+         VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP)`,
+        [referenceId, userId || null, 'accepted', decision, manually_verified]
+      );
+      console.log(`[updateReferenceDecision] ✅ Successfully logged overall decision: ${decision}`);
+    } catch (error) {
+      console.error(`[updateReferenceDecision] ❌ Failed to log overall decision:`, error);
+    }
+
     console.log('[updateReferenceDecision] Updated to:', result.rows[0]);
     return result.rows[0];
   } else {
@@ -338,6 +401,20 @@ export async function updateReferenceDecision(referenceId, decision, correctedDa
        RETURNING *`,
       [referenceId, JSON.stringify(['⚠ Needs review: User kept original values'])]
     );
+
+    // Log the rejection
+    try {
+      console.log(`[updateReferenceDecision] Logging rejected decision: ${decision}`);
+      await query(
+        `INSERT INTO reference_updates 
+         (reference_id, user_id, change_type, decision, manually_verified, created_at)
+         VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP)`,
+        [referenceId, userId || null, 'rejected', decision, false]
+      );
+      console.log(`[updateReferenceDecision] ✅ Successfully logged rejected decision: ${decision}`);
+    } catch (error) {
+      console.error(`[updateReferenceDecision] ❌ Failed to log rejected decision:`, error);
+    }
 
     console.log('[updateReferenceDecision] Marked as reviewed:', result.rows[0]);
     return result.rows[0];

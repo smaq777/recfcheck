@@ -134,25 +134,128 @@ export async function getReferenceById(referenceId: string) {
 
 export async function updateReferenceDecision(
   referenceId: string,
-  decision: 'accepted' | 'rejected',
-  correctedData?: { title?: string; authors?: string; year?: number }
+  decision: 'accepted' | 'rejected' | 'ignored',
+  userId?: string,
+  correctedData?: { title?: string; authors?: string; year?: number; source?: string; doi?: string; bibtex_type?: string; metadata?: any },
+  manually_verified: boolean = false
 ) {
+  // Get the current reference data for comparison
+  const currentRefResult = await query(
+    'SELECT * FROM "references" WHERE id = $1',
+    [referenceId]
+  );
+
+  if (!currentRefResult.rows || currentRefResult.rows.length === 0) {
+    throw new Error('Reference not found');
+  }
+
+  const oldData = currentRefResult.rows[0];
+  const changes: Array<{ field: string; old: string; new: string }> = [];
+
   if (decision === 'accepted' && correctedData) {
+    // Track changes
+    if (correctedData.title && correctedData.title !== oldData.original_title) {
+      changes.push({ field: 'title', old: oldData.original_title || '', new: correctedData.title });
+    }
+    if (correctedData.authors && correctedData.authors !== oldData.original_authors) {
+      changes.push({ field: 'authors', old: oldData.original_authors || '', new: correctedData.authors });
+    }
+    if (correctedData.year && correctedData.year !== oldData.original_year) {
+      changes.push({ field: 'year', old: String(oldData.original_year || ''), new: String(correctedData.year) });
+    }
+    if (correctedData.source && correctedData.source !== oldData.original_source) {
+      changes.push({ field: 'source', old: oldData.original_source || '', new: correctedData.source });
+    }
+    if (correctedData.doi && correctedData.doi !== oldData.doi) {
+      changes.push({ field: 'doi', old: oldData.doi || '', new: correctedData.doi });
+    }
+
+    // Update the reference
     await query(
-      `UPDATE references SET 
-        user_decision = $1,
-        corrected_title = $2,
-        corrected_authors = $3,
-        corrected_year = $4,
-        status = 'verified'
+      `UPDATE "references" SET 
+        original_title = COALESCE($1, original_title),
+        original_authors = COALESCE($2, original_authors),
+        original_year = COALESCE($3, original_year),
+        status = 'verified',
+        manually_verified = $4,
+        updated_at = CURRENT_TIMESTAMP
        WHERE id = $5`,
-      [decision, correctedData.title, correctedData.authors, correctedData.year, referenceId]
+      [correctedData.title, correctedData.authors, correctedData.year, manually_verified, referenceId]
     );
-  } else {
+
+    // Log each field change
+    for (const change of changes) {
+      try {
+        console.log(`[updateReferenceDecision] Logging field change: ${change.field}: ${change.old} → ${change.new}`);
+        await query(
+          `INSERT INTO reference_updates 
+           (reference_id, user_id, change_type, field_name, old_value, new_value, decision, manually_verified, created_at)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, CURRENT_TIMESTAMP)`,
+          [referenceId, userId || null, 'field_updated', change.field, change.old, change.new, decision, manually_verified]
+        );
+        console.log(`[updateReferenceDecision] ✅ Successfully logged field change: ${change.field}`);
+      } catch (error) {
+        console.error(`[updateReferenceDecision] ❌ Failed to log field change:`, error);
+      }
+    }
+
+    // Log the overall acceptance
+    try {
+      console.log(`[updateReferenceDecision] Logging overall decision: ${decision}`);
+      await query(
+        `INSERT INTO reference_updates 
+         (reference_id, user_id, change_type, decision, manually_verified, created_at)
+         VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP)`,
+        [referenceId, userId || null, 'accepted', decision, manually_verified]
+      );
+      console.log(`[updateReferenceDecision] ✅ Successfully logged overall decision: ${decision}`);
+    } catch (error) {
+      console.error(`[updateReferenceDecision] ❌ Failed to log overall decision:`, error);
+    }
+  } else if (decision === 'ignored') {
+    // Update with ignored status
     await query(
-      'UPDATE references SET user_decision = $1 WHERE id = $2',
-      [decision, referenceId]
+      `UPDATE "references" SET 
+        status = 'verified',
+        manually_verified = TRUE,
+        updated_at = CURRENT_TIMESTAMP
+       WHERE id = $1`,
+      [referenceId]
     );
+
+    // Log the ignored decision
+    try {
+      console.log(`[updateReferenceDecision] Logging ignored decision: ${decision}`);
+      await query(
+        `INSERT INTO reference_updates 
+         (reference_id, user_id, change_type, decision, manually_verified, created_at)
+         VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP)`,
+        [referenceId, userId || null, 'ignored', decision, true]
+      );
+      console.log(`[updateReferenceDecision] ✅ Successfully logged ignored decision: ${decision}`);
+    } catch (error) {
+      console.error(`[updateReferenceDecision] ❌ Failed to log ignored decision:`, error);
+    }
+  } else {
+    // Rejected
+    await query(
+      'UPDATE "references" SET status = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2',
+      ['issue', referenceId]
+    );
+
+    // Log the rejection
+    try {
+      console.log(`[updateReferenceDecision] Logging rejected decision: ${decision}`);
+      await query(
+        `INSERT INTO reference_updates 
+         (reference_id, user_id, change_type, decision, manually_verified, created_at)
+         VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP)`,
+        [referenceId, userId || null, 'rejected', decision, false]
+      );
+      console.log(`[updateReferenceDecision] ✅ Successfully logged rejected decision: ${decision}`);
+    } catch (error) {
+      console.error(`[updateReferenceDecision] ❌ Failed to log rejected decision:`, error);
+    }
   }
 }
 

@@ -74,6 +74,20 @@ CREATE TABLE IF NOT EXISTS openalex_cache (
   expires_at TIMESTAMP DEFAULT (CURRENT_TIMESTAMP + INTERVAL '30 days')
 );
 
+-- Reference update history for tracking changes
+CREATE TABLE IF NOT EXISTS reference_updates (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  reference_id UUID NOT NULL REFERENCES bibliography_references(id) ON DELETE CASCADE,
+  user_id UUID REFERENCES users(id) ON DELETE SET NULL,
+  change_type VARCHAR(50) NOT NULL,
+  old_value TEXT,
+  new_value TEXT,
+  field_name VARCHAR(255),
+  decision VARCHAR(50),
+  manually_verified BOOLEAN DEFAULT false,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 -- Create indexes for faster queries
 CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
 CREATE INDEX IF NOT EXISTS idx_analysis_jobs_user_id ON analysis_jobs(user_id);
@@ -83,6 +97,8 @@ CREATE INDEX IF NOT EXISTS idx_bibliography_references_user_id ON bibliography_r
 CREATE INDEX IF NOT EXISTS idx_bibliography_references_status ON bibliography_references(status);
 CREATE INDEX IF NOT EXISTS idx_openalex_cache_query ON openalex_cache(query_title);
 CREATE INDEX IF NOT EXISTS idx_openalex_cache_expires ON openalex_cache(expires_at);
+CREATE INDEX IF NOT EXISTS idx_reference_updates_reference_id ON reference_updates(reference_id);
+CREATE INDEX IF NOT EXISTS idx_reference_updates_created_at ON reference_updates(created_at DESC);
 `;
 
 export interface User {
@@ -139,4 +155,17 @@ export interface OpenAlexCache {
   response: any;
   cached_at: string;
   expires_at: string;
+}
+
+export interface ReferenceUpdate {
+  id: string;
+  reference_id: string;
+  user_id?: string;
+  change_type: string;
+  old_value?: string;
+  new_value?: string;
+  field_name?: string;
+  decision?: string;
+  manually_verified: boolean;
+  created_at: string;
 }

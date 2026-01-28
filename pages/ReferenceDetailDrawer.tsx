@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Reference, ReferenceStatus } from '../types';
 
 interface ReferenceDetailDrawerProps {
@@ -17,6 +17,19 @@ interface QuickFix {
   description: string;
   value: string;
   applied: boolean;
+}
+
+interface ReferenceUpdate {
+  id: string;
+  reference_id: string;
+  user_id?: string;
+  change_type: string;
+  field_name?: string;
+  old_value?: string;
+  new_value?: string;
+  decision?: string;
+  manually_verified: boolean;
+  created_at: string;
 }
 
 type TabType = 'summary' | 'differences' | 'suggestions' | 'history';
@@ -42,8 +55,40 @@ const ReferenceDetailDrawer: React.FC<ReferenceDetailDrawerProps> = ({
     venue: '',
     doi: ''
   });
+  const [updateHistory, setUpdateHistory] = useState<ReferenceUpdate[]>([]);
+  const [loadingHistory, setLoadingHistory] = useState(false);
+  const historyFetchedRef = useRef<Set<string>>(new Set()); // Track which references we've fetched
 
   if (!reference) return null;
+
+  // Fetch history when History tab is opened
+  useEffect(() => {
+    if (activeTab === 'history' && reference && !historyFetchedRef.current.has(reference.id)) {
+      historyFetchedRef.current.add(reference.id);
+      setLoadingHistory(true);
+      
+      const fetchHistory = async () => {
+        try {
+          const response = await fetch(`/api/reference-history?referenceId=${reference.id}`);
+          if (response.ok) {
+            const data = await response.json();
+            setUpdateHistory(data.updates || []);
+          }
+        } catch (error) {
+          console.error('Failed to fetch history:', error);
+        } finally {
+          setLoadingHistory(false);
+        }
+      };
+      fetchHistory();
+    }
+  }, [activeTab, reference?.id]);
+
+  // Clear history when reference changes
+  useEffect(() => {
+    setUpdateHistory([]);
+    setLoadingHistory(false);
+  }, [reference?.id]);
 
   // DEBUG: Log verification URLs
   console.log('[ReferenceDetailDrawer] Verification URLs:', {
@@ -1346,10 +1391,124 @@ if (!jobId) {
         {/* History Tab */}
         {activeTab === 'history' && (
           <section className="flex flex-col gap-4">
-            <div className="text-center py-12 text-slate-500 dark:text-slate-400">
-              <span className="material-symbols-outlined text-4xl mb-2">history</span>
-              <p className="text-sm">No previous updates for this reference</p>
+            <div>
+              <h3 className="text-slate-900 dark:text-white text-lg font-bold mb-1">Update History</h3>
+              <p className="text-sm text-slate-500 dark:text-slate-400">
+                All changes made to this reference
+              </p>
             </div>
+
+            {loadingHistory && (
+              <div className="flex items-center justify-center py-8">
+                <span className="material-symbols-outlined text-slate-400 animate-spin">progress_activity</span>
+                <p className="ml-2 text-slate-500 dark:text-slate-400">Loading history...</p>
+              </div>
+            )}
+
+            {!loadingHistory && updateHistory.length === 0 && (
+              <div className="text-center py-12">
+                <span className="material-symbols-outlined text-4xl mb-2 text-slate-300">history</span>
+                <p className="text-sm text-slate-500 dark:text-slate-400">No previous updates for this reference</p>
+              </div>
+            )}
+
+            {!loadingHistory && updateHistory.length > 0 && (
+              <div className="space-y-3">
+                {updateHistory.map((update, idx) => {
+                  const getChangeIcon = () => {
+                    switch (update.change_type) {
+                      case 'field_updated':
+                        return { icon: 'edit', color: 'text-blue-600 dark:text-blue-400' };
+                      case 'accepted':
+                        return { icon: 'check_circle', color: 'text-success' };
+                      case 'rejected':
+                        return { icon: 'cancel', color: 'text-error' };
+                      case 'ignored':
+                        return { icon: 'info', color: 'text-slate-500 dark:text-slate-400' };
+                      default:
+                        return { icon: 'info', color: 'text-slate-500 dark:text-slate-400' };
+                    }
+                  };
+
+                  const changeIcon = getChangeIcon();
+                  const changeDate = new Date(update.created_at);
+                  const formattedDate = changeDate.toLocaleDateString('en-US', {
+                    month: 'short',
+                    day: 'numeric',
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                  });
+
+                  // Create a human-readable description
+                  let description = '';
+                  if (update.change_type === 'field_updated' && update.field_name) {
+                    description = `Updated ${update.field_name}: "${update.old_value}" → "${update.new_value}"`;
+                  } else if (update.change_type === 'accepted') {
+                    description = update.manually_verified ? 'Applied manual corrections' : 'Applied suggested corrections';
+                  } else if (update.change_type === 'rejected') {
+                    description = 'User rejected all corrections';
+                  } else if (update.change_type === 'ignored') {
+                    description = 'User ignored warnings and accepted reference as-is';
+                  } else {
+                    description = `${update.change_type}: ${update.decision || 'No decision'}`;
+                  }
+
+                  return (
+                    <div
+                      key={update.id}
+                      className="flex gap-4 p-4 rounded-lg bg-white dark:bg-surface-dark border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 transition-colors"
+                    >
+                      <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${
+                        update.change_type === 'field_updated' ? 'bg-blue-50 dark:bg-blue-900/20' :
+                        update.change_type === 'accepted' ? 'bg-success/10' :
+                        update.change_type === 'rejected' ? 'bg-error/10' :
+                        'bg-slate-100 dark:bg-slate-800'
+                      }`}>
+                        <span className={`material-symbols-outlined text-[18px] ${changeIcon.color}`}>
+                          {changeIcon.icon}
+                        </span>
+                      </div>
+
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-start justify-between gap-2 mb-1">
+                          <p className="text-slate-900 dark:text-white font-semibold text-sm leading-tight">
+                            {description}
+                          </p>
+                        </div>
+
+                        <div className="flex items-center gap-3 text-xs text-slate-500 dark:text-slate-400">
+                          <span className="flex items-center gap-1">
+                            <span className="material-symbols-outlined text-[14px]">schedule</span>
+                            {formattedDate}
+                          </span>
+                          {update.manually_verified && (
+                            <span className="inline-flex items-center gap-1 px-2 py-1 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400 rounded-full text-xs font-medium">
+                              <span className="material-symbols-outlined text-[12px]">person</span>
+                              Manually verified
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Show field-level details for field updates */}
+                        {update.change_type === 'field_updated' && update.old_value && update.new_value && (
+                          <div className="mt-2 p-2 bg-slate-50 dark:bg-slate-900/50 rounded text-xs space-y-1">
+                            <div className="flex gap-2">
+                              <span className="text-slate-500 dark:text-slate-400 font-semibold min-w-fit">Original:</span>
+                              <span className="text-slate-700 dark:text-slate-300 break-words">{update.old_value}</span>
+                            </div>
+                            <div className="flex gap-2">
+                              <span className="text-success font-semibold min-w-fit">Updated to:</span>
+                              <span className="text-slate-700 dark:text-slate-300 break-words font-medium">{update.new_value}</span>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </section>
         )}
       </div>

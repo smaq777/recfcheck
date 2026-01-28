@@ -1589,7 +1589,7 @@ const server = http.createServer(async (req, res) => {
       }
 
       // Update the reference in database
-      await updateReferenceDecision(referenceId, decision, correctedData, manually_verified);
+      await updateReferenceDecision(referenceId, decision, userId, correctedData, manually_verified);
 
       // Log activity
       await logActivity(userId, jobId, decision === 'accepted' ? 'accept_correction' : decision === 'ignored' ? 'ignore_warning' : 'reject_correction', {
@@ -1601,6 +1601,55 @@ const server = http.createServer(async (req, res) => {
       res.writeHead(200, { "Content-Type": "application/json" });
       res.end(JSON.stringify({ success: true }));
       return;
+    }
+
+    // GET /api/reference-history - Retrieve update history for a reference
+    if (req.url.startsWith("/api/reference-history") && req.method === "GET") {
+      try {
+        const url = new URL(req.url, "http://localhost");
+        const referenceId = url.searchParams.get("referenceId");
+
+        if (!referenceId) {
+          res.writeHead(400, { "Content-Type": "application/json" });
+          res.end(JSON.stringify({ error: "Reference ID is required" }));
+          return;
+        }
+
+        // Query the reference_updates table
+        const result = await query(
+          `SELECT 
+             id,
+             reference_id,
+             user_id,
+             change_type,
+             field_name,
+             old_value,
+             new_value,
+             decision,
+             manually_verified,
+             created_at
+           FROM reference_updates
+           WHERE reference_id = $1
+           ORDER BY created_at DESC`,
+          [referenceId]
+        );
+
+        console.log(`[/api/reference-history] Found ${result.rows ? result.rows.length : 0} updates for reference ${referenceId}`);
+
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({
+          success: true,
+          updates: result.rows || []
+        }));
+        return;
+      } catch (error) {
+        console.error('[/api/reference-history] Error:', error);
+        res.writeHead(500, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({
+          error: error.message || 'Failed to fetch reference history'
+        }));
+        return;
+      }
     }
 
     // POST /api/merge-duplicates - Merge duplicate references

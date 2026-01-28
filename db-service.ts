@@ -133,6 +133,22 @@ export async function initializeDatabase() {
       )
     `);
 
+    // Create reference_updates table for tracking changes
+    await queryDatabase(`
+      CREATE TABLE IF NOT EXISTS reference_updates (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        reference_id UUID NOT NULL REFERENCES bibliography_references(id) ON DELETE CASCADE,
+        user_id UUID REFERENCES users(id) ON DELETE SET NULL,
+        change_type VARCHAR(50) NOT NULL,
+        old_value TEXT,
+        new_value TEXT,
+        field_name VARCHAR(255),
+        decision VARCHAR(50),
+        manually_verified BOOLEAN DEFAULT false,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
     // Create indexes
     await queryDatabase(`CREATE INDEX IF NOT EXISTS idx_users_email ON users(email)`);
     await queryDatabase(`CREATE INDEX IF NOT EXISTS idx_analysis_jobs_user_id ON analysis_jobs(user_id)`);
@@ -142,6 +158,8 @@ export async function initializeDatabase() {
     await queryDatabase(`CREATE INDEX IF NOT EXISTS idx_bibliography_references_status ON bibliography_references(status)`);
     await queryDatabase(`CREATE INDEX IF NOT EXISTS idx_openalex_cache_query ON openalex_cache(query_title)`);
     await queryDatabase(`CREATE INDEX IF NOT EXISTS idx_openalex_cache_expires ON openalex_cache(expires_at)`);
+    await queryDatabase(`CREATE INDEX IF NOT EXISTS idx_reference_updates_reference_id ON reference_updates(reference_id)`);
+    await queryDatabase(`CREATE INDEX IF NOT EXISTS idx_reference_updates_created_at ON reference_updates(created_at DESC)`);
 
     console.log('Database initialized successfully');
   } catch (error) {
