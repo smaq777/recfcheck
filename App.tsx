@@ -93,7 +93,7 @@ const AppHeader: React.FC<{
           <div className="size-8 rounded-lg bg-primary text-white flex items-center justify-center">
             <span className="material-symbols-outlined text-[20px]">fact_check</span>
           </div>
-          <h2 className="text-lg font-bold tracking-tight">RefCheck</h2>
+          <h2 className="text-lg font-bold tracking-tight">CheckMyBib</h2>
         </div>
         <nav className="hidden md:flex items-center gap-6 pl-6 border-l border-border-light">
           <button
@@ -398,7 +398,7 @@ const App: React.FC = () => {
               <div className="size-6 rounded-lg bg-primary text-white flex items-center justify-center">
                 <span className="material-symbols-outlined text-[16px]">fact_check</span>
               </div>
-              <span className="font-bold">RefCheck</span>
+              <span className="font-bold">CheckMyBib</span>
             </div>
             <div className="flex gap-8 text-sm text-slate-500">
               <button onClick={() => navigateTo(AppView.PRICING)} className="hover:text-primary">Pricing</button>
@@ -406,7 +406,7 @@ const App: React.FC = () => {
               <button className="hover:text-primary">Privacy</button>
               <button className="hover:text-primary">Terms</button>
             </div>
-            <p className="text-xs text-slate-400">© 2024 RefCheck Inc.</p>
+            <p className="text-xs text-slate-400">© 2024 CheckMyBib Inc.</p>
           </div>
         </footer>
       )}

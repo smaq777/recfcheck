@@ -240,11 +240,30 @@ export async function getReferenceById(referenceId) {
  * @param {Object} correctedData - Corrected reference data
  * @returns {Promise<Object>} Updated reference object
  */
-export async function updateReferenceDecision(referenceId, decision, correctedData = {}) {
+export async function updateReferenceDecision(referenceId, decision, correctedData = {}, manually_verified = false) {
   console.log('[updateReferenceDecision] Updating reference:', referenceId, 'Decision:', decision);
   console.log('[updateReferenceDecision] Corrected data:', correctedData);
+  console.log('[updateReferenceDecision] Manually verified:', manually_verified);
 
-  // If accepted, apply canonical values to the original fields
+  // Handle ignored decision - keep original, mark as manually verified
+  if (decision === 'ignored') {
+    const result = await query(
+      `UPDATE "references" 
+       SET 
+         status = 'verified',
+         manually_verified = TRUE,
+         issues = $2,
+         updated_at = CURRENT_TIMESTAMP
+       WHERE id = $1
+       RETURNING *`,
+      [referenceId, JSON.stringify(['⚠ Warning ignored by user - accepted as-is'])]
+    );
+
+    console.log('[updateReferenceDecision] Ignored warning:', result.rows[0]);
+    return result.rows[0];
+  }
+
+  // If accepted, apply canonical values or manual edits to the original fields
   if (decision === 'accepted' && correctedData) {
     // Calculate which fields were corrected for the issues array
     const correctedFields = [];
@@ -266,6 +285,10 @@ export async function updateReferenceDecision(referenceId, decision, correctedDa
       updates.source = correctedData.source;
       correctedFields.push('venue');
     }
+    if (correctedData.doi) {
+      updates.doi = correctedData.doi;
+      correctedFields.push('DOI');
+    }
 
     const result = await query(
       `UPDATE "references" 
@@ -274,11 +297,13 @@ export async function updateReferenceDecision(referenceId, decision, correctedDa
          original_authors = COALESCE($3, original_authors),
          original_year = COALESCE($4, original_year),
          original_source = COALESCE($5, original_source),
-         metadata = COALESCE($6, metadata),
-         bibtex_type = COALESCE($7, bibtex_type),
+         doi = COALESCE($6, doi),
+         metadata = COALESCE($7, metadata),
+         bibtex_type = COALESCE($8, bibtex_type),
+         manually_verified = $9,
          status = 'verified',
          confidence_score = 100,
-         issues = $8,
+         issues = $10,
          updated_at = CURRENT_TIMESTAMP
        WHERE id = $1
        RETURNING *`,
@@ -288,9 +313,14 @@ export async function updateReferenceDecision(referenceId, decision, correctedDa
         correctedData.authors || null,
         correctedData.year || null,
         correctedData.source || null,
+        correctedData.doi || null,
         correctedData.metadata ? JSON.stringify(correctedData.metadata) : null,
         correctedData.bibtex_type || null,
-        JSON.stringify([`✓ Corrected: ${correctedFields.join(', ')}`])
+        manually_verified,
+        JSON.stringify([manually_verified 
+          ? `✓ Manually edited: ${correctedFields.join(', ')}` 
+          : `✓ Corrected: ${correctedFields.join(', ')}`
+        ])
       ]
     );
 

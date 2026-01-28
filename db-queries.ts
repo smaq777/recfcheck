@@ -1,4 +1,4 @@
-// Database queries for RefCheck application
+// Database queries for CheckMyBib application
 import { query, transaction } from './db-connection';
 
 // ============================================

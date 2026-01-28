@@ -5,7 +5,8 @@ interface ReferenceDetailDrawerProps {
   reference: Reference | null;
   isOpen: boolean;
   onClose: () => void;
-  onApplyFix?: (id: string, accept: boolean) => void;
+  onApplyFix?: (id: string, accept: boolean, corrections?: any) => void;
+  jobId?: string;
 }
 
 interface QuickFix {
@@ -25,12 +26,22 @@ const ReferenceDetailDrawer: React.FC<ReferenceDetailDrawerProps> = ({
   isOpen,
   onClose,
   onApplyFix,
+  jobId,
 }) => {
   const [activeTab, setActiveTab] = useState<TabType>('summary');
   const [appliedFixes, setAppliedFixes] = useState<Set<string>>(new Set());
   const [isUpdating, setIsUpdating] = useState(false);
   const [updateSuccess, setUpdateSuccess] = useState(false);
   const [updateError, setUpdateError] = useState<string | null>(null);
+  const [showIgnoreWarning, setShowIgnoreWarning] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [manualEdits, setManualEdits] = useState({
+    title: '',
+    authors: '',
+    year: '',
+    venue: '',
+    doi: ''
+  });
 
   if (!reference) return null;
 
@@ -305,8 +316,141 @@ const ReferenceDetailDrawer: React.FC<ReferenceDetailDrawerProps> = ({
   };
 
   const handleIgnore = () => {
-    if (onApplyFix) {
-      onApplyFix(reference.id, false);
+    setShowIgnoreWarning(true);
+  };
+
+  const confirmIgnore = async () => {
+    try {
+      setIsUpdating(true);
+      setShowIgnoreWarning(false);
+if (!jobId) {
+        throw new Error('Job ID not found');
+      }
+
+      const user = localStorage.getItem('refcheck_user');
+      if (!user) throw new Error('User not authenticated');
+
+      const userData = JSON.parse(user);
+      const token = userData.id || userData.uid;
+
+      console.log('[Ignore Warning] Sending request:', {
+        jobId,
+        referenceId: reference.id,
+        decision: 'ignored'
+      });
+
+      // Mark reference as manually verified (ignoring warnings)
+      const response = await fetch('/api/accept-correction', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          jobId: jobId,
+          referenceId: reference.id,
+          decision: 'ignored',
+          correctedData: null,
+          manually_verified: true
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to ignore warning');
+      }
+
+      setUpdateSuccess(true);
+      
+      // Reload the page to show updated data
+      setTimeout(() => {
+        setUpdateSuccess(false);
+        window.location.reload();
+      }, 1500);
+
+    } catch (error: any) {
+      console.error('Ignore warning error:', error);
+      setUpdateError(error.message || 'Failed to ignore warning');
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  const handleEnableEditing = () => {
+    setIsEditing(true);
+    // Initialize manual edits with current canonical or original values
+    setManualEdits({
+      title: canonicalTitle || originalTitle || '',
+      authors: canonicalAuthors || originalAuthors || '',
+      year: canonicalYear?.toString() || originalYear?.toString() || '',
+      venue: venue || '',
+      doi: doi || ''
+    });
+  };
+
+  const handleManualUpdate = async () => {
+    try {
+      setIsUpdating(true);
+
+      if (!jobId) {
+        throw new Error('Job ID not found');
+      }
+
+      const user = localStorage.getItem('refcheck_user');
+      if (!user) throw new Error('User not authenticated');
+
+      const userData = JSON.parse(user);
+      const token = userData.id || userData.uid;
+
+      console.log('[Manual Update] Sending request:', {
+        jobId,
+        referenceId: reference.id,
+        manualEdits
+      });
+
+      // Apply manual edits
+      const response = await fetch('/api/accept-correction', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          jobId: jobId,
+          referenceId: reference.id,
+          decision: 'accepted',
+          correctedData: {
+            title: manualEdits.title,
+            authors: manualEdits.authors,
+            year: parseInt(manualEdits.year) || null,
+            source: manualEdits.venue,
+            doi: manualEdits.doi,
+            bibtex_type: (reference as any).bibtex_type,
+            metadata: (reference as any).metadata
+          },
+          manually_verified: true
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to update reference');
+      }
+
+      setUpdateSuccess(true);
+      setIsEditing(false);
+      
+      // Reload the page to show updated data
+      setTimeout(() => {
+        setUpdateSuccess(false);
+        window.location.reload();
+      }, 1500);
+
+    } catch (error: any) {
+      console.error('Manual update error:', error);
+      setUpdateError(error.message || 'Failed to update reference');
+    } finally {
+      setIsUpdating(false);
     }
   };
 
@@ -1043,6 +1187,119 @@ const ReferenceDetailDrawer: React.FC<ReferenceDetailDrawerProps> = ({
                 <span>Missing</span>
               </div>
             </div>
+
+            {/* Manual Editing Section */}
+            {!canonicalTitle && !canonicalAuthors && !canonicalYear && !doi && (
+              <div className="bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800 rounded-lg p-6 mt-4">
+                <div className="flex items-start gap-4 mb-4">
+                  <div className="w-12 h-12 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center shrink-0">
+                    <span className="material-symbols-outlined text-amber-600 dark:text-amber-400 text-[28px]">edit_note</span>
+                  </div>
+                  <div>
+                    <h4 className="text-lg font-bold text-slate-900 dark:text-white mb-2">
+                      Reference Not Found in APIs
+                    </h4>
+                    <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
+                      This reference wasn't found in academic databases (OpenAlex, Crossref, Semantic Scholar). 
+                      You can manually edit the fields below and save at your own risk, or ignore the warning to accept as-is.
+                    </p>
+                  </div>
+                </div>
+                
+                {!isEditing ? (
+                  <button
+                    onClick={handleEnableEditing}
+                    className="px-6 py-3 rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-sm font-bold transition-colors flex items-center gap-2"
+                  >
+                    <span className="material-symbols-outlined text-[18px]">edit</span>
+                    Edit Manually (Your Risk)
+                  </button>
+                ) : (
+                  <div className="space-y-4 mt-4">
+                    <div>
+                      <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Title</label>
+                      <input
+                        type="text"
+                        value={manualEdits.title}
+                        onChange={(e) => setManualEdits({ ...manualEdits, title: e.target.value })}
+                        className="w-full px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                        placeholder="Enter title..."
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Authors</label>
+                      <input
+                        type="text"
+                        value={manualEdits.authors}
+                        onChange={(e) => setManualEdits({ ...manualEdits, authors: e.target.value })}
+                        className="w-full px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                        placeholder="Enter authors (comma-separated)..."
+                      />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Year</label>
+                        <input
+                          type="number"
+                          value={manualEdits.year}
+                          onChange={(e) => setManualEdits({ ...manualEdits, year: e.target.value })}
+                          className="w-full px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                          placeholder="YYYY"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">DOI</label>
+                        <input
+                          type="text"
+                          value={manualEdits.doi}
+                          onChange={(e) => setManualEdits({ ...manualEdits, doi: e.target.value })}
+                          className="w-full px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                          placeholder="10.xxxx/xxxxx"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Venue / Source</label>
+                      <input
+                        type="text"
+                        value={manualEdits.venue}
+                        onChange={(e) => setManualEdits({ ...manualEdits, venue: e.target.value })}
+                        className="w-full px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                        placeholder="Conference or journal name..."
+                      />
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <button
+                        onClick={() => setIsEditing(false)}
+                        className="px-4 py-2 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 text-sm font-semibold transition-colors"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        onClick={handleManualUpdate}
+                        disabled={isUpdating}
+                        className="flex-1 px-6 py-3 rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-sm font-bold transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                      >
+                        {isUpdating ? (
+                          <>
+                            <span className="material-symbols-outlined text-[18px] animate-spin">progress_activity</span>
+                            Saving...
+                          </>
+                        ) : (
+                          <>
+                            <span className="material-symbols-outlined text-[18px]">save</span>
+                            Save Manual Edits
+                          </>
+                        )}
+                      </button>
+                    </div>
+                    <p className="text-xs text-amber-700 dark:text-amber-400 font-semibold">
+                      ⚠️ Warning: Manual edits bypass API verification. Ensure accuracy before exporting.
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
           </section>
         )}
 
@@ -1160,6 +1417,55 @@ const ReferenceDetailDrawer: React.FC<ReferenceDetailDrawerProps> = ({
           </button>
         </div>
       </div>
+
+      {/* Ignore Warning Confirmation Modal */}
+      {showIgnoreWarning && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-surface-dark rounded-2xl shadow-2xl max-w-md w-full p-6 border border-slate-200 dark:border-slate-800">
+            <div className="flex items-start gap-4 mb-4">
+              <div className="w-12 h-12 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center shrink-0">
+                <span className="material-symbols-outlined text-amber-600 dark:text-amber-400 text-[28px]">warning</span>
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2">
+                  Ignore Warning and Accept As-Is?
+                </h3>
+                <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
+                  This will mark the reference as <strong>manually verified</strong> and add it to your verified list <strong>without any corrections</strong>. The reference will be exported exactly as you uploaded it, ignoring all API suggestions.
+                </p>
+                <p className="text-sm text-amber-700 dark:text-amber-400 font-semibold mt-3">
+                  ⚠️ Use this only if you're certain the original reference is correct.
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3 justify-end">
+              <button
+                onClick={() => setShowIgnoreWarning(false)}
+                className="px-4 py-2 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 text-sm font-semibold transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmIgnore}
+                disabled={isUpdating}
+                className="px-6 py-2 rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-sm font-bold transition-colors disabled:opacity-50 flex items-center gap-2"
+              >
+                {isUpdating ? (
+                  <>
+                    <span className="material-symbols-outlined text-[16px] animate-spin">progress_activity</span>
+                    Processing...
+                  </>
+                ) : (
+                  <>
+                    <span className="material-symbols-outlined text-[16px]">check</span>
+                    Yes, Ignore & Accept As-Is
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </aside>
   );
 };

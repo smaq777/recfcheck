@@ -326,7 +326,7 @@ const ProcessingProgress: React.FC<ProcessingProgressProps> = ({ onNavigate }) =
             <div className="w-8 h-8 bg-[#1e3a5f] rounded-lg flex items-center justify-center">
               <span className="material-symbols-outlined text-white text-lg">fact_check</span>
             </div>
-            <h1 className="text-lg font-bold text-gray-900">RefCheck</h1>
+            <h1 className="text-lg font-bold text-gray-900">CheckMyBib</h1>
           </div>
           <div className="flex items-center gap-2 text-sm text-gray-500">
             <span className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500 animate-pulse' : 'bg-yellow-500'}`}></span>

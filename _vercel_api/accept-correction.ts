@@ -1,13 +1,25 @@
 /**
  * Vercel API Route: POST /api/accept-correction
- * Updates a reference when user accepts or rejects corrections
+ * Updates a reference when user accepts, rejects, or ignores corrections
  */
 
 import { queryDatabase } from '../db-service';
 
 interface AcceptCorrectionRequest {
   referenceId: string;
-  accepted: boolean;
+  jobId?: string;
+  decision: 'accepted' | 'rejected' | 'ignored';
+  correctedData?: {
+    title?: string;
+    authors?: string;
+    year?: number;
+    source?: string;
+    doi?: string;
+    bibtex_type?: string;
+    metadata?: any;
+  };
+  manually_verified?: boolean;
+  accepted?: boolean; // Legacy support
 }
 
 export default async function handler(req: any, res: any) {
@@ -16,43 +28,31 @@ export default async function handler(req: any, res: any) {
   }
 
   try {
-    const { referenceId, accepted }: AcceptCorrectionRequest = req.body;
+    const { 
+      referenceId, 
+      decision, 
+      correctedData, 
+      manually_verified, 
+      accepted // Legacy support
+    }: AcceptCorrectionRequest = req.body;
 
     if (!referenceId) {
       return res.status(400).json({ error: 'Reference ID is required' });
     }
 
-    console.log(`[AcceptCorrection] Reference ${referenceId}, accepted: ${accepted}`);
+    // Handle legacy 'accepted' boolean
+    const finalDecision = decision || (accepted ? 'accepted' : 'rejected');
 
-    if (accepted) {
-      // User accepted corrections - apply canonical values to original fields
+    console.log(`[AcceptCorrection] Reference ${referenceId}, decision: ${finalDecision}, manually_verified: ${manually_verified}`);
+
+    if (finalDecision === 'ignored') {
+      // User ignored warning - mark as manually verified with original data
       const result = await queryDatabase(
-        `UPDATE bibliography_references 
+        `UPDATE "references" 
          SET 
-           title = COALESCE(canonical_title, title),
-           authors = COALESCE(canonical_authors, authors),
-           year = COALESCE(canonical_year, year),
-           source = COALESCE(venue, source),
            status = 'verified',
-           confidence_score = 100,
-           issues = ARRAY[CONCAT('✓ Corrected: ', 
-             CASE 
-               WHEN canonical_title IS NOT NULL AND canonical_title != title THEN 'title, '
-               ELSE ''
-             END ||
-             CASE 
-               WHEN canonical_authors IS NOT NULL AND canonical_authors != authors THEN 'authors, '
-               ELSE ''
-             END ||
-             CASE 
-               WHEN canonical_year IS NOT NULL AND canonical_year != year THEN 'year, '
-               ELSE ''
-             END ||
-             CASE 
-               WHEN venue IS NOT NULL AND venue != source THEN 'venue'
-               ELSE ''
-             END
-           )],
+           manually_verified = TRUE,
+           issues = ARRAY['⚠ Warning ignored by user - accepted as-is'],
            updated_at = CURRENT_TIMESTAMP
          WHERE id = $1
          RETURNING *`,
@@ -63,38 +63,96 @@ export default async function handler(req: any, res: any) {
         return res.status(404).json({ error: 'Reference not found' });
       }
 
-      console.log(`[AcceptCorrection] Updated reference:`, result.rows[0]);
-
       return res.status(200).json({
         success: true,
         reference: result.rows[0],
-        message: 'Corrections applied successfully'
-      });
-    } else {
-      // User rejected corrections - mark as reviewed but keep original
-      const result = await queryDatabase(
-        `UPDATE bibliography_references 
-         SET 
-           status = 'verified',
-           issues = ARRAY['⚠ Needs review: User kept original values'],
-           updated_at = CURRENT_TIMESTAMP
-         WHERE id = $1
-         RETURNING *`,
-        [referenceId]
-      );
-
-      if (!result.rows || result.rows.length === 0) {
-        return res.status(404).json({ error: 'Reference not found' });
-      }
-
-      console.log(`[AcceptCorrection] Marked as reviewed:`, result.rows[0]);
-
-      return res.status(200).json({
-        success: true,
-        reference: result.rows[0],
-        message: 'Reference marked as reviewed'
+        message: 'Warning ignored - reference accepted as-is'
       });
     }
+
+    if (finalDecision === 'accepted') {
+      // Apply corrections (either from API or manual edits)
+      const updates: string[] = [];
+      const values: any[] = [];
+      let paramIndex = 1;
+
+      if (correctedData) {
+        // Manual edits or specific corrections provided
+        if (correctedData.title) {
+          updates.push(`original_title = $${paramIndex++}`);
+          values.push(correctedData.title);
+        }
+        if (correctedData.authors) {
+          updates.push(`original_authors = $${paramIndex++}`);
+          values.push(correctedData.authors);
+        }
+        if (correctedData.year) {
+          updates.push(`original_year = $${paramIndex++}`);
+          values.push(correctedData.year);
+        }
+        if (correctedData.source) {
+          updates.push(`original_source = $${paramIndex++}`);
+          values.push(correctedData.source);
+        }
+        if (correctedData.doi) {
+          updates.push(`doi = $${paramIndex++}`);
+          values.push(correctedData.doi);
+        }
+      } else {
+        // Apply canonical values from API
+        updates.push(`original_title = COALESCE(canonical_title, original_title)`);
+        updates.push(`original_authors = COALESCE(canonical_authors, original_authors)`);
+        updates.push(`original_year = COALESCE(canonical_year, original_year)`);
+        updates.push(`original_source = COALESCE(venue, original_source)`);
+      }
+
+      updates.push(`status = $${paramIndex++}`);
+      values.push('verified');
+
+      if (manually_verified) {
+        updates.push(`manually_verified = $${paramIndex++}`);
+        values.push(true);
+      }
+
+      updates.push(`updated_at = CURRENT_TIMESTAMP`);
+      values.push(referenceId);
+
+      const query = `UPDATE "references" SET ${updates.join(', ')} WHERE id = $${paramIndex} RETURNING *`;
+      
+      const result = await queryDatabase(query, values);
+
+      if (!result.rows || result.rows.length === 0) {
+        return res.status(404).json({ error: 'Reference not found' });
+      }
+
+      return res.status(200).json({
+        success: true,
+        reference: result.rows[0],
+        message: manually_verified ? 'Manual edits saved successfully' : 'Corrections applied successfully'
+      });
+    }
+
+    // Rejected
+    const result = await queryDatabase(
+      `UPDATE "references" 
+       SET 
+         status = 'verified',
+         issues = ARRAY['⚠ Needs review: User kept original values'],
+         updated_at = CURRENT_TIMESTAMP
+       WHERE id = $1
+       RETURNING *`,
+      [referenceId]
+    );
+
+    if (!result.rows || result.rows.length === 0) {
+      return res.status(404).json({ error: 'Reference not found' });
+    }
+
+    return res.status(200).json({
+      success: true,
+      reference: result.rows[0],
+      message: 'Reference marked as reviewed'
+    });
   } catch (error) {
     console.error('[AcceptCorrection] Error:', error);
     return res.status(500).json({

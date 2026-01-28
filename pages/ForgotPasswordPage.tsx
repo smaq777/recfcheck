@@ -46,7 +46,7 @@ const ForgotPasswordPage: React.FC<ForgotPasswordPageProps> = ({ onNavigate }) =
               <div className="flex items-center justify-center size-8 rounded bg-primary/10 text-primary">
                 <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>library_books</span>
               </div>
-              <span className="text-lg font-extrabold tracking-tight text-text-main">RefCheck</span>
+              <span className="text-lg font-extrabold tracking-tight text-text-main">CheckMyBib</span>
             </div>
             <nav className="hidden md:flex gap-8">
               <a className="text-sm font-medium text-text-muted hover:text-primary transition-colors" href="#">Product</a>
@@ -110,7 +110,7 @@ const ForgotPasswordPage: React.FC<ForgotPasswordPageProps> = ({ onNavigate }) =
                 We've sent a password reset link to <span className="text-slate-900 font-bold">{email}</span>.
               </p>
               <p className="text-slate-400 text-sm mt-4">
-                Check your inbox and spam folder for an email from RefCheck.
+                Check your inbox and spam folder for an email from CheckMyBib.
               </p>
               <button 
                 onClick={() => onNavigate(AppView.LOGIN)} 
@@ -133,7 +133,7 @@ const ForgotPasswordPage: React.FC<ForgotPasswordPageProps> = ({ onNavigate }) =
               <div className="flex items-center justify-center size-6 rounded bg-primary/10 text-primary">
                 <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>library_books</span>
               </div>
-              <span className="text-base font-extrabold text-text-main">RefCheck</span>
+              <span className="text-base font-extrabold text-text-main">CheckMyBib</span>
             </div>
             <p className="text-sm text-text-muted mb-4">The standard for bibliography verification in academic research.</p>
             <p className="text-xs text-text-muted leading-relaxed">
@@ -152,7 +152,7 @@ const ForgotPasswordPage: React.FC<ForgotPasswordPageProps> = ({ onNavigate }) =
           </div>
         </div>
         <div className="border-t border-border-light pt-8 flex flex-col md:flex-row justify-between items-center gap-4 text-sm text-text-muted">
-          <p>© 2024 RefCheck Inc. All rights reserved.</p>
+          <p>© 2024 CheckMyBib Inc. All rights reserved.</p>
           <div className="flex gap-6">
             <button onClick={() => onNavigate(AppView.PRIVACY_POLICY)} className="hover:text-primary transition-colors">Privacy Policy</button>
             <button onClick={() => onNavigate(AppView.TERMS_CONDITIONS)} className="hover:text-primary transition-colors">Terms of Service</button>

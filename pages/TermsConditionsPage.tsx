@@ -19,7 +19,7 @@ const TermsConditionsPage: React.FC<TermsConditionsPageProps> = ({ onNavigate })
               <div className="flex items-center justify-center size-8 rounded bg-primary/10 text-primary">
                 <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>library_books</span>
               </div>
-              <span className="text-lg font-extrabold tracking-tight text-text-main">RefCheck</span>
+              <span className="text-lg font-extrabold tracking-tight text-text-main">CheckMyBib</span>
             </div>
             <nav className="hidden md:flex gap-8">
               <a className="text-sm font-medium text-text-muted hover:text-primary transition-colors" href="#">Product</a>
@@ -44,7 +44,7 @@ const TermsConditionsPage: React.FC<TermsConditionsPageProps> = ({ onNavigate })
               <section>
                 <h2 className="text-2xl font-bold text-slate-900 mb-4">1. Acceptance of Terms</h2>
                 <p className="text-text-muted leading-relaxed">
-                  By accessing and using RefCheck ("the Service"), you accept and agree to be bound by these Terms and Conditions. 
+                  By accessing and using CheckMyBib ("the Service"), you accept and agree to be bound by these Terms and Conditions. 
                   If you do not agree to these terms, please do not use our service.
                 </p>
               </section>
@@ -52,7 +52,7 @@ const TermsConditionsPage: React.FC<TermsConditionsPageProps> = ({ onNavigate })
               <section>
                 <h2 className="text-2xl font-bold text-slate-900 mb-4">2. Service Description</h2>
                 <p className="text-text-muted leading-relaxed">
-                  RefCheck is a bibliography verification tool designed to assist academic researchers in validating references 
+                  CheckMyBib is a bibliography verification tool designed to assist academic researchers in validating references 
                   and citations in their scholarly work. Our service analyzes uploaded documents, extracts bibliographic references, 
                   and cross-verifies them against multiple academic databases and APIs.
                 </p>
@@ -68,7 +68,7 @@ const TermsConditionsPage: React.FC<TermsConditionsPageProps> = ({ onNavigate })
                   <div>
                     <h3 className="text-lg font-semibold text-slate-800 mb-2">3.1 Tool Limitations</h3>
                     <p className="text-text-muted leading-relaxed">
-                      While we strive to provide accurate and reliable bibliography verification, RefCheck is an automated tool 
+                      While we strive to provide accurate and reliable bibliography verification, CheckMyBib is an automated tool 
                       that relies on external data sources and APIs. As with any automated system, it may occasionally produce 
                       incomplete or inaccurate results. The tool is designed to assist researchers, not replace human judgment 
                       and careful review.
@@ -78,7 +78,7 @@ const TermsConditionsPage: React.FC<TermsConditionsPageProps> = ({ onNavigate })
                   <div>
                     <h3 className="text-lg font-semibold text-slate-800 mb-2">3.2 No Guarantee of Accuracy</h3>
                     <p className="text-text-muted leading-relaxed">
-                      We do not guarantee that all information provided by RefCheck is complete, accurate, or up-to-date. 
+                      We do not guarantee that all information provided by CheckMyBib is complete, accurate, or up-to-date. 
                       The service depends on third-party academic databases (including OpenAlex, Crossref, and Semantic Scholar), 
                       which may have incomplete records, outdated information, or coverage gaps. These external APIs sometimes 
                       do not contain comprehensive metadata for all publications, particularly older works, non-English publications, 
@@ -89,11 +89,11 @@ const TermsConditionsPage: React.FC<TermsConditionsPageProps> = ({ onNavigate })
                   <div>
                     <h3 className="text-lg font-semibold text-slate-800 mb-2">3.3 User Responsibility</h3>
                     <p className="text-text-muted leading-relaxed font-semibold text-slate-900">
-                      YOU MUST INDEPENDENTLY VERIFY ALL RESULTS PROVIDED BY REFCHECK.
+                      YOU MUST INDEPENDENTLY VERIFY ALL RESULTS PROVIDED BY CHECKMYBIB.
                     </p>
                     <p className="text-text-muted leading-relaxed mt-2">
                       It is your responsibility as the researcher or author to double-check all references, citations, and 
-                      bibliographic information before submitting your work for publication or academic evaluation. RefCheck 
+                      bibliographic information before submitting your work for publication or academic evaluation. CheckMyBib 
                       is a supplementary tool to assist in your verification process, not a substitute for thorough academic due diligence.
                     </p>
                   </div>
@@ -101,7 +101,7 @@ const TermsConditionsPage: React.FC<TermsConditionsPageProps> = ({ onNavigate })
                   <div>
                     <h3 className="text-lg font-semibold text-slate-800 mb-2">3.4 Limitation of Liability</h3>
                     <p className="text-text-muted leading-relaxed">
-                      RefCheck, its creators, and operators do not accept any responsibility or liability for errors, omissions, 
+                      CheckMyBib, its creators, and operators do not accept any responsibility or liability for errors, omissions, 
                       or inaccuracies in the verification results. We are not liable for any consequences arising from your 
                       reliance on the information provided by our service, including but not limited to:
                     </p>
@@ -117,9 +117,9 @@ const TermsConditionsPage: React.FC<TermsConditionsPageProps> = ({ onNavigate })
                   <div>
                     <h3 className="text-lg font-semibold text-slate-800 mb-2">3.5 Our Commitment</h3>
                     <p className="text-text-muted leading-relaxed">
-                      We are committed to continuously improving RefCheck and maintaining the highest standards of quality. 
+                      We are committed to continuously improving CheckMyBib and maintaining the highest standards of quality. 
                       Our team works diligently to keep our algorithms up-to-date, expand our database coverage, and enhance 
-                      the accuracy of our verification processes. However, we must emphasize that RefCheck should be used as 
+                      the accuracy of our verification processes. However, we must emphasize that CheckMyBib should be used as 
                       one tool among many in your research workflow, not as the sole method of bibliography verification.
                     </p>
                   </div>
@@ -130,7 +130,7 @@ const TermsConditionsPage: React.FC<TermsConditionsPageProps> = ({ onNavigate })
                 <h2 className="text-2xl font-bold text-slate-900 mb-4">4. User Accounts</h2>
                 <h3 className="text-xl font-semibold text-slate-800 mb-3 mt-4">4.1 Account Creation</h3>
                 <p className="text-text-muted leading-relaxed mb-3">
-                  To use RefCheck, you must create an account with a valid email address. You are responsible for:
+                  To use CheckMyBib, you must create an account with a valid email address. You are responsible for:
                 </p>
                 <ul className="list-disc list-inside text-text-muted space-y-2 ml-4">
                   <li>Maintaining the confidentiality of your account credentials</li>
@@ -149,7 +149,7 @@ const TermsConditionsPage: React.FC<TermsConditionsPageProps> = ({ onNavigate })
               <section>
                 <h2 className="text-2xl font-bold text-slate-900 mb-4">5. Subscription Plans</h2>
                 <p className="text-text-muted leading-relaxed mb-3">
-                  RefCheck offers various subscription tiers (Free, Pro, Enterprise) with different features and usage limits:
+                  CheckMyBib offers various subscription tiers (Free, Pro, Enterprise) with different features and usage limits:
                 </p>
                 <ul className="list-disc list-inside text-text-muted space-y-2 ml-4">
                   <li>Free plan users are limited to 5 bibliography checks per month</li>
@@ -184,7 +184,7 @@ const TermsConditionsPage: React.FC<TermsConditionsPageProps> = ({ onNavigate })
 
                 <h3 className="text-xl font-semibold text-slate-800 mb-3 mt-6">7.2 Our Platform</h3>
                 <p className="text-text-muted leading-relaxed">
-                  RefCheck, including its software, algorithms, design, and branding, is our intellectual property. 
+                  CheckMyBib, including its software, algorithms, design, and branding, is our intellectual property. 
                   You may not copy, modify, distribute, or create derivative works without our explicit permission.
                 </p>
               </section>
@@ -210,8 +210,8 @@ const TermsConditionsPage: React.FC<TermsConditionsPageProps> = ({ onNavigate })
               <section>
                 <h2 className="text-2xl font-bold text-slate-900 mb-4">10. Third-Party Services</h2>
                 <p className="text-text-muted leading-relaxed">
-                  RefCheck integrates with external academic databases and APIs. We are not responsible for the accuracy, 
-                  availability, or performance of these third-party services. Your use of RefCheck may be subject to additional 
+                  CheckMyBib integrates with external academic databases and APIs. We are not responsible for the accuracy, 
+                  availability, or performance of these third-party services. Your use of CheckMyBib may be subject to additional 
                   terms and conditions of these external providers.
                 </p>
               </section>
@@ -219,7 +219,7 @@ const TermsConditionsPage: React.FC<TermsConditionsPageProps> = ({ onNavigate })
               <section>
                 <h2 className="text-2xl font-bold text-slate-900 mb-4">11. Indemnification</h2>
                 <p className="text-text-muted leading-relaxed">
-                  You agree to indemnify and hold harmless RefCheck, its creators, and operators from any claims, damages, 
+                  You agree to indemnify and hold harmless CheckMyBib, its creators, and operators from any claims, damages, 
                   or expenses arising from your use of the service, violation of these terms, or infringement of any rights 
                   of another party.
                 </p>
@@ -238,7 +238,7 @@ const TermsConditionsPage: React.FC<TermsConditionsPageProps> = ({ onNavigate })
                 <h2 className="text-2xl font-bold text-slate-900 mb-4">13. Changes to Terms</h2>
                 <p className="text-text-muted leading-relaxed">
                   We reserve the right to modify these Terms and Conditions at any time. We will notify users of significant 
-                  changes via email or through the platform. Your continued use of RefCheck after changes are posted constitutes 
+                  changes via email or through the platform. Your continued use of CheckMyBib after changes are posted constitutes 
                   acceptance of the modified terms.
                 </p>
               </section>
@@ -260,7 +260,7 @@ const TermsConditionsPage: React.FC<TermsConditionsPageProps> = ({ onNavigate })
               </section>
 
               <section className="bg-blue-50 border-l-4 border-blue-500 p-6 rounded-r-xl mt-8">
-                <p className="text-slate-800 font-semibold mb-2">By using RefCheck, you acknowledge that:</p>
+                <p className="text-slate-800 font-semibold mb-2">By using CheckMyBib, you acknowledge that:</p>
                 <ul className="list-disc list-inside text-text-muted space-y-2 ml-4">
                   <li>You have read and understood these Terms and Conditions</li>
                   <li>You accept the limitations and disclaimers outlined herein</li>
@@ -282,7 +282,7 @@ const TermsConditionsPage: React.FC<TermsConditionsPageProps> = ({ onNavigate })
                 <div className="flex items-center justify-center size-6 rounded bg-primary/10 text-primary">
                   <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>library_books</span>
                 </div>
-                <span className="text-base font-extrabold text-text-main">RefCheck</span>
+                <span className="text-base font-extrabold text-text-main">CheckMyBib</span>
               </div>
               <p className="text-sm text-text-muted mb-4">The standard for bibliography verification in academic research.</p>
               <p className="text-xs text-text-muted leading-relaxed">
@@ -301,7 +301,7 @@ const TermsConditionsPage: React.FC<TermsConditionsPageProps> = ({ onNavigate })
             </div>
           </div>
           <div className="border-t border-border-light pt-8 flex flex-col md:flex-row justify-between items-center gap-4 text-sm text-text-muted">
-            <p>© 2024 RefCheck Inc. All rights reserved.</p>
+            <p>© 2024 CheckMyBib Inc. All rights reserved.</p>
             <div className="flex gap-6">
               <button onClick={() => onNavigate(AppView.PRIVACY_POLICY)} className="hover:text-primary transition-colors">Privacy Policy</button>
               <button onClick={() => onNavigate(AppView.TERMS_CONDITIONS)} className="hover:text-primary transition-colors">Terms of Service</button>

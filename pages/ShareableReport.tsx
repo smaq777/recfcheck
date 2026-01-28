@@ -15,7 +15,7 @@ const ShareableReport: React.FC<ShareableReportProps> = ({ onNavigate }) => {
             <div className="size-8 flex items-center justify-center rounded-lg bg-primary/10 text-primary">
               <span className="material-symbols-outlined text-2xl font-black">library_books</span>
             </div>
-            <span className="text-xl font-black tracking-tight text-primary">RefCheck</span>
+            <span className="text-xl font-black tracking-tight text-primary">CheckMyBib</span>
           </div>
           <div className="flex items-center gap-4">
             <span className="hidden text-[10px] font-black uppercase tracking-widest text-slate-400 sm:block">Viewing public report</span>

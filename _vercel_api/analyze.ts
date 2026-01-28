@@ -149,6 +149,44 @@ function calculateStringSimilarity(str1: string, str2: string): number {
 }
 
 /**
+ * Calculate author similarity using name overlap
+ * Returns 0-100 percentage
+ */
+function calculateAuthorSimilarity(authors1: string, authors2: string): number {
+  if (!authors1 || !authors2) return 0;
+  
+  // Normalize and extract author names
+  const extractNames = (str: string): Set<string> => {
+    const normalized = str.toLowerCase()
+      .replace(/[,;]/g, ' ')
+      .replace(/\band\b/gi, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+    
+    // Split by spaces and filter out initials/short words
+    const names = normalized.split(/\s+/).filter(n => n.length > 2);
+    return new Set(names);
+  };
+  
+  const names1 = extractNames(authors1);
+  const names2 = extractNames(authors2);
+  
+  if (names1.size === 0 || names2.size === 0) return 0;
+  
+  // Count matching names
+  let matchCount = 0;
+  for (const name of names1) {
+    if (names2.has(name)) {
+      matchCount++;
+    }
+  }
+  
+  // Jaccard similarity
+  const unionSize = names1.size + names2.size - matchCount;
+  return Math.round((matchCount / unionSize) * 100);
+}
+
+/**
  * Levenshtein distance algorithm for string similarity
  */
 function levenshteinDistance(str1: string, str2: string): number {
@@ -225,17 +263,25 @@ function detectDuplicates(references: any[]): Map<string, string[]> {
         matchReason = `Exact DOI match: ${doi1}`;
       }
       
-      // CRITERION 2: Near-identical title match (99%+ similarity)
-      // Only check if we don't have DOI confirmation
-      // Same authors can publish multiple similar papers - require very high threshold
+      // CRITERION 2: Very strict title+year+author match
+      // Same authors can publish multiple similar papers - require VERY high threshold
       if (!isDuplicate && ref1.title && ref2.title) {
         const titleSimilarity = calculateStringSimilarity(ref1.title, ref2.title);
+        const authorSimilarity = calculateAuthorSimilarity(ref1.authors, ref2.authors);
         
-        // Require 99% similarity AND same year to avoid false positives
-        // (Same authors often publish related papers with similar titles)
-        if (titleSimilarity >= 99 && ref1.year === ref2.year) {
+        // Require 99.5% title similarity AND exact year AND 80%+ author overlap
+        // This prevents "Arabic SMS phishing URLs" vs "Arabic SMS phishing text" false positives
+        if (titleSimilarity >= 99.5 && ref1.year === ref2.year && authorSimilarity >= 80) {
           isDuplicate = true;
-          matchReason = `Near-identical title (${titleSimilarity.toFixed(1)}%) + exact year match (${ref1.year})`;
+          matchReason = `Near-identical title (${titleSimilarity.toFixed(1)}%) + exact year (${ref1.year}) + author overlap (${authorSimilarity.toFixed(1)}%)`;
+        }
+        
+        // Log near-misses for debugging
+        if (titleSimilarity >= 85 && titleSimilarity < 99.5 && ref1.year === ref2.year) {
+          console.log(`[Duplicates] Near-miss (NOT duplicate):`);
+          console.log(`  Title similarity: ${titleSimilarity.toFixed(1)}% (need 99.5%+)`);
+          console.log(`  [${i}] "${ref1.title?.substring(0, 60)}..."`);
+          console.log(`  [${j}] "${ref2.title?.substring(0, 60)}..."`);
         }
       }
       

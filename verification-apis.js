@@ -7,33 +7,87 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 const OPENALEX_API_KEY = process.env.OPENALEX_API_KEY || '';
-const CROSSREF_EMAIL = 'verify@refcheck.ai'; // Crossref is free but requires email
+const CROSSREF_EMAIL = 'verify@checkmybib.ai'; // Crossref is free but requires email
 
 /**
  * Verify reference with OpenAlex API
  * https://docs.openalex.org/
+ * Enhanced with multi-strategy search for better accuracy
  */
 export async function verifyWithOpenAlex(reference) {
   try {
-    const query = encodeURIComponent(reference.title.trim());
-    const url = `https://api.openalex.org/works?filter=title.search:${query}&mailto=${CROSSREF_EMAIL}`;
+    // Strategy 1: Try DOI first (100% reliable)
+    if (reference.doi) {
+      const doiResult = await searchOpenAlexByDOI(reference.doi);
+      if (doiResult && doiResult.results && doiResult.results.length > 0) {
+        console.log(`   ✅ OpenAlex: Found by DOI`);
+        return processOpenAlexMatch(doiResult.results[0], reference, 100);
+      }
+    }
 
-    const response = await fetch(url);
-    if (!response.ok) throw new Error(`OpenAlex error: ${response.status}`);
-
-    const data = await response.json();
+    let data = null;
+    
+    // Strategy 2: Enhanced search endpoint (better than filter)
+    const exactQuery = encodeURIComponent(reference.title.trim());
+    const exactUrl = `https://api.openalex.org/works?search=${exactQuery}`;
+    
+    console.log(`   🔍 OpenAlex: Searching with exact title...`);
+    let response = await fetch(exactUrl);
+    if (!response.ok) {
+      console.log(`   ⚠️ OpenAlex exact search failed: ${response.status}`);
+      // Don't throw, try next strategy
+      data = { results: [] };
+    } else {
+      data = await response.json();
+    }
+    
+    // Strategy 3: If no results, try normalized title (remove stopwords)
+    if (!data.results || data.results.length === 0) {
+      const normalizedTitle = normalizeSearchTitle(reference.title);
+      const normalizedQuery = encodeURIComponent(normalizedTitle);
+      const normalizedUrl = `https://api.openalex.org/works?search=${normalizedQuery}`;
+      
+      console.log(`   🔍 OpenAlex: Retry with normalized title: "${normalizedTitle}"`);
+      response = await fetch(normalizedUrl);
+      if (!response.ok) {
+        console.log(`   ⚠️ OpenAlex normalized search failed: ${response.status}`);
+        data = { results: [] };
+      } else {
+        data = await response.json();
+      }
+    }
+    
+    // Strategy 4: If still no results and we have author+year, try combined search
+    if ((!data.results || data.results.length === 0) && reference.authors && reference.year) {
+      const firstAuthor = extractFirstAuthor(reference.authors);
+      const combinedQuery = `${normalizeSearchTitle(reference.title)} ${firstAuthor} ${reference.year}`;
+      const combinedUrl = `https://api.openalex.org/works?search=${encodeURIComponent(combinedQuery)}`;
+      
+      console.log(`   🔍 OpenAlex: Retry with author+year: "${firstAuthor} ${reference.year}"`);
+      response = await fetch(combinedUrl);
+      if (!response.ok) {
+        console.log(`   ⚠️ OpenAlex combined search failed: ${response.status}`);
+        data = { results: [] };
+      } else {
+        data = await response.json();
+      }
+    }
 
     if (!data.results || data.results.length === 0) {
+      console.log(`   ❌ OpenAlex: No results found after all strategies`);
       return { source: 'OpenAlex', found: false, confidence: 0 };
     }
 
     const match = data.results[0];
     const titleSimilarity = calculateSimilarity(reference.title, match.title);
-    const yearMatch = reference.year === match.publication_year;
+    
+    // Allow ±5 years difference (dates are unreliable: preprints, early access, citation errors)
+    const yearDiff = Math.abs(reference.year - match.publication_year);
+    const yearMatch = yearDiff <= 5;
 
-    // EXTREMELY PERMISSIVE: 20% threshold
-    // Accept any reasonable match - better false positive than false negative
-    if (titleSimilarity < 20) {
+    // More lenient threshold: 50% (was 20%)
+    // This catches papers with subtitle differences, word variations
+    if (titleSimilarity < 50) {
       console.log(`   ⚠️ OpenAlex: Title similarity too low (${titleSimilarity}%) - rejecting match`);
       console.log(`      Your title: "${reference.title}"`);
       console.log(`      Found title: "${match.title}"`);
@@ -50,43 +104,7 @@ export async function verifyWithOpenAlex(reference) {
       }
     }
     
-    // Log match for debugging
-    console.log(`   ✅ OpenAlex: Found match (${titleSimilarity}% similarity)`);
-    console.log(`      Your title: "${reference.title}"`);
-    console.log(`      Found title: "${match.title}"`);
-
-    // Extract ALL authors from OpenAlex
-    const allAuthors = match.authorships?.map(a => a.author.display_name).filter(Boolean) || [];
-    console.log(`   📚 OpenAlex found ${allAuthors.length} authors:`, allAuthors);
-
-    // Extract rich metadata for better export
-    const metadata = {
-      publisher: match.primary_location?.source?.publisher,
-      pages: match.biblio?.first_page && match.biblio?.last_page ? `${match.biblio.first_page}--${match.biblio.last_page}` : match.biblio?.first_page,
-      volume: match.biblio?.volume,
-      issue: match.biblio?.issue,
-      editor: match.authorships?.filter(a => a.author_position === 'editor').map(a => a.author.display_name).join(' and '),
-      is_conference: match.type === 'proceedings-article' || match.type === 'conference-proceedings',
-      month: match.publication_date ? new Date(match.publication_date).toLocaleString('en-US', { month: 'short' }).toLowerCase() : null,
-    };
-
-    return {
-      source: 'OpenAlex',
-      found: true,
-      confidence: titleSimilarity,
-      canonical_title: match.title,
-      canonical_authors: allAuthors.join(' and '), // BibTeX uses ' and '
-      canonical_year: match.publication_year,
-      doi: match.doi ? match.doi.replace('https://doi.org/', '').replace('DOI:', '').trim() : null,
-      is_retracted: match.is_retracted || false,
-      cited_by_count: match.cited_by_count || 0,
-      venue: match.primary_location?.source?.display_name,
-      bibtex_type: match.type === 'proceedings-article' ? 'inproceedings' : 'article',
-      metadata,
-      open_access: match.open_access?.is_oa || false,
-      url: `https://openalex.org/${match.id?.replace('https://openalex.org/', '')}`,
-      issues: detectIssues(reference, match, titleSimilarity, yearMatch)
-    };
+    return processOpenAlexMatch(match, reference, titleSimilarity, yearMatch);
   } catch (error) {
     console.error('OpenAlex verification error:', error);
     return { source: 'OpenAlex', found: false, confidence: 0, error: error.message };
@@ -94,29 +112,200 @@ export async function verifyWithOpenAlex(reference) {
 }
 
 /**
+ * Search OpenAlex by DOI
+ */
+async function searchOpenAlexByDOI(doi) {
+  try {
+    const cleanDoi = doi.replace('https://doi.org/', '').replace('http://doi.org/', '').replace('DOI:', '').trim();
+    const url = `https://api.openalex.org/works?filter=doi:${encodeURIComponent(cleanDoi)}`;
+    
+    const response = await fetch(url);
+    if (!response.ok) return null;
+    
+    return await response.json();
+  } catch (error) {
+    console.error('OpenAlex DOI search error:', error);
+    return null;
+  }
+}
+
+/**
+ * Normalize title for better search results
+ */
+function normalizeSearchTitle(title) {
+  return title
+    .replace(/[:–—()\[\]{}"'`]/g, ' ')  // Remove special punctuation
+    .replace(/\b(a|an|the|of|for|in|on|at|to|with|by|from|and|or|using|based)\b/gi, ' ')  // Remove stopwords
+    .replace(/\s+/g, ' ')  // Collapse spaces
+    .trim();
+}
+
+/**
+ * Extract important keywords from title (removes all stopwords)
+ */
+function extractKeywords(title) {
+  const stopwords = new Set([
+    'a', 'an', 'the', 'of', 'to', 'in', 'on', 'at', 'for', 'by', 'from', 'with', 'and', 'or', 'but',
+    'as', 'is', 'was', 'are', 'be', 'been', 'being', 'have', 'has', 'had', 'do', 'does', 'did',
+    'will', 'would', 'could', 'should', 'may', 'might', 'must', 'can', 'using', 'based',
+    'toward', 'towards', 'through', 'during', 'before', 'after', 'above', 'below', 'under', 'over',
+    'between', 'among', 'into', 'through', 'during', 'including', 'i', 'me', 'my', 'we', 'you',
+    'he', 'she', 'it', 'they', 'what', 'which', 'who', 'where', 'when', 'why', 'how'
+  ]);
+  
+  return title
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .split(/\s+/)
+    .filter(word => word.length > 2 && !stopwords.has(word));
+}
+
+/**
+ * Extract first author surname
+ */
+function extractFirstAuthor(authors) {
+  const firstAuthor = authors.split(/[;,]|\band\b/i)[0].trim();
+  const parts = firstAuthor.split(/\s+/);
+  return parts[parts.length - 1]; // Last word is usually surname
+}
+
+/**
+ * Process OpenAlex match into standardized format
+ */
+function processOpenAlexMatch(match, reference, titleSimilarity, yearMatch) {
+  const calculatedSimilarity = titleSimilarity !== undefined ? titleSimilarity : calculateSimilarity(reference.title, match.title);
+  const isYearMatch = yearMatch !== undefined ? yearMatch : (reference.year === match.publication_year);
+  
+  // Log match for debugging
+  console.log(`   ✅ OpenAlex: Found match (${calculatedSimilarity}% similarity)`);
+  console.log(`      Your title: "${reference.title}"`);
+  console.log(`      Found title: "${match.title}"`);
+
+  // Extract ALL authors from OpenAlex
+  const allAuthors = match.authorships?.map(a => a.author.display_name).filter(Boolean) || [];
+  console.log(`   📚 OpenAlex found ${allAuthors.length} authors:`, allAuthors);
+
+  // Extract rich metadata for better export
+  const metadata = {
+    publisher: match.primary_location?.source?.publisher,
+    pages: match.biblio?.first_page && match.biblio?.last_page ? `${match.biblio.first_page}--${match.biblio.last_page}` : match.biblio?.first_page,
+    volume: match.biblio?.volume,
+    issue: match.biblio?.issue,
+    editor: match.authorships?.filter(a => a.author_position === 'editor').map(a => a.author.display_name).join(' and '),
+    is_conference: match.type === 'proceedings-article' || match.type === 'conference-proceedings',
+    month: match.publication_date ? new Date(match.publication_date).toLocaleString('en-US', { month: 'short' }).toLowerCase() : null,
+  };
+
+  // Detect if this is a preprint or non-peer-reviewed source
+  const sourceType = match.primary_location?.source?.type || '';
+  const venueName = match.primary_location?.source?.display_name || '';
+  const isPreprintSource = sourceType === 'repository' || 
+                          venueName.toLowerCase().includes('preprint') ||
+                          venueName.toLowerCase().includes('arxiv') ||
+                          venueName.toLowerCase().includes('researchsquare') ||
+                          venueName.toLowerCase().includes('research square') ||
+                          venueName.toLowerCase().includes('osf preprints') ||
+                          venueName.toLowerCase().includes('medrxiv') ||
+                          venueName.toLowerCase().includes('biorxiv');
+  
+  const isPeerReviewed = sourceType === 'journal' && !isPreprintSource;
+
+  return {
+    source: 'OpenAlex',
+    found: true,
+    confidence: calculatedSimilarity,
+    canonical_title: match.title,
+    canonical_authors: allAuthors.join(' and '), // BibTeX uses ' and '
+    canonical_year: match.publication_year,
+    doi: match.doi ? match.doi.replace('https://doi.org/', '').replace('DOI:', '').trim() : null,
+    is_retracted: match.is_retracted || false,
+    is_peer_reviewed: isPeerReviewed,
+    is_preprint: isPreprintSource,
+    cited_by_count: match.cited_by_count || 0,
+    venue: match.primary_location?.source?.display_name,
+    bibtex_type: match.type === 'proceedings-article' ? 'inproceedings' : 'article',
+    metadata,
+    open_access: match.open_access?.is_oa || false,
+    url: `https://openalex.org/${match.id?.replace('https://openalex.org/', '')}`,
+    issues: detectIssues(reference, match, calculatedSimilarity, isYearMatch, isPeerReviewed, isPreprintSource, !!match.doi)
+  };
+}
+
+/**
  * Verify reference with Crossref API (FREE - no API key needed!)
  * https://www.crossref.org/documentation/retrieve-metadata/rest-api/
+ * Enhanced with multi-strategy search for better accuracy
  */
 export async function verifyWithCrossref(reference) {
   try {
-    const query = encodeURIComponent(reference.title.trim());
-    const url = `https://api.crossref.org/works?query.title=${query}&mailto=${CROSSREF_EMAIL}&rows=1`;
+    // Strategy 1: Try DOI first (100% reliable)
+    if (reference.doi) {
+      const doiResult = await searchCrossrefByDOI(reference.doi);
+      if (doiResult && doiResult.message?.items?.length > 0) {
+        console.log(`   ✅ Crossref: Found by DOI`);
+        return processCrossrefMatch(doiResult.message.items[0], reference, 100);
+      }
+    }
 
-    const response = await fetch(url);
-    if (!response.ok) throw new Error(`Crossref error: ${response.status}`);
+    let data = null;
+    
+    // Strategy 2: Exact title search
+    const exactQuery = encodeURIComponent(reference.title.trim());
+    const exactUrl = `https://api.crossref.org/works?query.title=${exactQuery}&rows=1`;
+    
+    console.log(`   🔍 Crossref: Searching with exact title...`);
+    let response = await fetch(exactUrl);
+    if (response.ok) {
+      data = await response.json();
+    } else {
+      data = { message: { items: [] } };
+    }
+    
+    // Strategy 3: If no results, try normalized title
+    if (!data.message?.items?.length) {
+      const normalizedTitle = normalizeSearchTitle(reference.title);
+      const normalizedQuery = encodeURIComponent(normalizedTitle);
+      const normalizedUrl = `https://api.crossref.org/works?query.title=${normalizedQuery}&rows=1`;
+      
+      console.log(`   🔍 Crossref: Retry with normalized title: "${normalizedTitle}"`);
+      response = await fetch(normalizedUrl);
+      if (response.ok) {
+        data = await response.json();
+      } else {
+        data = { message: { items: [] } };
+      }
+    }
+    
+    // Strategy 4: If still no results, try combined author+year search
+    if (!data.message?.items?.length && reference.authors && reference.year) {
+      const firstAuthor = extractFirstAuthor(reference.authors);
+      const combinedQuery = `${normalizeSearchTitle(reference.title)} ${firstAuthor} ${reference.year}`;
+      const combinedUrl = `https://api.crossref.org/works?query=${encodeURIComponent(combinedQuery)}&rows=1`;
+      
+      console.log(`   🔍 Crossref: Retry with author+year: "${firstAuthor} ${reference.year}"`);
+      response = await fetch(combinedUrl);
+      if (response.ok) {
+        data = await response.json();
+      } else {
+        data = { message: { items: [] } };
+      }
+    }
 
-    const data = await response.json();
-
-    if (!data.message || !data.message.items || data.message.items.length === 0) {
+    if (!data.message?.items?.length) {
+      console.log(`   ❌ Crossref: No results found after all strategies`);
       return { source: 'Crossref', found: false, confidence: 0 };
     }
 
     const match = data.message.items[0];
     const titleSimilarity = calculateSimilarity(reference.title, match.title?.[0] || '');
-    const yearMatch = reference.year === parseInt(match.published?.['date-parts']?.[0]?.[0]);
+    
+    // Allow ±5 years difference (dates are unreliable: preprints, early access, citation errors)
+    const apiYear = parseInt(match.published?.['date-parts']?.[0]?.[0]);
+    const yearDiff = Math.abs(reference.year - apiYear);
+    const yearMatch = yearDiff <= 5;
 
-    // EXTREMELY PERMISSIVE: 20% threshold
-    if (titleSimilarity < 35) {
+    // More lenient threshold: 50% (was 35%)
+    if (titleSimilarity < 50) {
       console.log(`   ⚠️ Crossref: Title similarity too low (${titleSimilarity}%) - rejecting match`);
       return { source: 'Crossref', found: false, confidence: 0 };
     }
@@ -131,8 +320,43 @@ export async function verifyWithCrossref(reference) {
       }
     }
     
+    return processCrossrefMatch(match, reference, titleSimilarity, yearMatch);
+  } catch (error) {
+    console.error('Crossref verification error:', error);
+    return { source: 'Crossref', found: false, confidence: 0, error: error.message };
+  }
+}
+
+/**
+ * Search Crossref by DOI
+ */
+async function searchCrossrefByDOI(doi) {
+  try {
+    const cleanDoi = doi.replace('https://doi.org/', '').replace('http://doi.org/', '').replace('DOI:', '').trim();
+    const url = `https://api.crossref.org/works/${encodeURIComponent(cleanDoi)}`;
+    
+    const response = await fetch(url);
+    if (!response.ok) return null;
+    
+    const data = await response.json();
+    return { message: { items: [data.message] } };
+  } catch (error) {
+    console.error('Crossref DOI search error:', error);
+    return null;
+  }
+}
+
+/**
+ * Process Crossref match into standardized format
+ */
+function processCrossrefMatch(match, reference, titleSimilarity, yearMatch) {
+  const calculatedSimilarity = titleSimilarity !== undefined ? titleSimilarity : calculateSimilarity(reference.title, match.title?.[0] || '');
+  const isYearMatch = yearMatch !== undefined ? yearMatch : (reference.year === parseInt(match.published?.['date-parts']?.[0]?.[0]));
+  
     // Log match for debugging
-    console.log(`   ✅ Crossref: Found match (${titleSimilarity}% similarity)`);
+    console.log(`   ✅ Crossref: Found match (${calculatedSimilarity}% similarity)`);
+    console.log(`      Your title: "${reference.title}"`);
+    console.log(`      Found title: "${match.title?.[0]}"`);
 
     // Extract ALL authors from Crossref
     const allAuthors = match.author?.map(a => {
@@ -152,14 +376,32 @@ export async function verifyWithCrossref(reference) {
       is_conference: match.type?.includes('proceedings-article') || match.type?.includes('conference'),
     };
 
+    // Detect if this is a preprint or non-peer-reviewed source
+    const publisherLower = (match.publisher || '').toLowerCase();
+    const containerLower = (match.container?.[0] || match['container-title']?.[0] || '').toLowerCase();
+    const isPreprintSource = publisherLower.includes('preprint') ||
+                            publisherLower.includes('arxiv') ||
+                            publisherLower.includes('researchsquare') ||
+                            publisherLower.includes('research square') ||
+                            publisherLower.includes('osf') ||
+                            publisherLower.includes('medrxiv') ||
+                            publisherLower.includes('biorxiv') ||
+                            containerLower.includes('preprint') ||
+                            containerLower.includes('arxiv');
+    
+    // Crossref journal-published items are typically peer-reviewed unless marked otherwise
+    const isPeerReviewed = !isPreprintSource && (match.type === 'journal-article' || match.type?.includes('journal'));
+
     return {
       source: 'Crossref',
       found: true,
-      confidence: titleSimilarity,
+      confidence: calculatedSimilarity,
       canonical_title: match.title?.[0],
       canonical_authors: allAuthors.join(' and '), // BibTeX format
       canonical_year: parseInt(match.published?.['date-parts']?.[0]?.[0]),
       doi: match.DOI,
+      is_peer_reviewed: isPeerReviewed,
+      is_preprint: isPreprintSource,
       venue: match.container?.[0] || match['container-title']?.[0],
       bibtex_type: (match.type?.includes('proceedings') || match.type?.includes('conference')) ? 'inproceedings' : 'article',
       metadata,
@@ -168,77 +410,160 @@ export async function verifyWithCrossref(reference) {
         title: match.title?.[0],
         publication_year: parseInt(match.published?.['date-parts']?.[0]?.[0]),
         doi: match.DOI
-      }, titleSimilarity, yearMatch)
+      }, calculatedSimilarity, isYearMatch, isPeerReviewed, isPreprintSource, !!match.DOI)
     };
-  } catch (error) {
-    console.error('Crossref verification error:', error);
-    return { source: 'Crossref', found: false, confidence: 0, error: error.message };
-  }
 }
 
 /**
  * Verify reference with Semantic Scholar API (FREE!)
  * https://www.semanticscholar.org/product/api
+ * Enhanced with multi-strategy search for better accuracy
  */
 export async function verifyWithSemanticScholar(reference) {
   try {
-    const query = encodeURIComponent(reference.title.trim());
-    const url = `https://api.semanticscholar.org/graph/v1/paper/search?query=${query}&limit=1&fields=title,authors,year,citationCount,isOpenAccess,venue,externalIds`;
+    // Strategy 1: Try DOI first (100% reliable)
+    if (reference.doi) {
+      const doiResult = await searchSemanticScholarByDOI(reference.doi);
+      if (doiResult && doiResult.data?.length > 0) {
+        console.log(`   ✅ Semantic Scholar: Found by DOI`);
+        return processSemanticScholarMatch(doiResult.data[0], reference, 100);
+      }
+    }
 
-    const response = await fetch(url);
-    if (!response.ok) throw new Error(`Semantic Scholar error: ${response.status}`);
+    let data = null;
+    
+    // Strategy 2: Exact title search
+    const exactQuery = encodeURIComponent(reference.title.trim());
+    const exactUrl = `https://api.semanticscholar.org/graph/v1/paper/search?query=${exactQuery}&limit=1&fields=title,authors,year,citationCount,isOpenAccess,venue,externalIds`;
+    
+    console.log(`   🔍 Semantic Scholar: Searching with exact title...`);
+    let response = await fetch(exactUrl);
+    if (response.ok) {
+      data = await response.json();
+    } else {
+      data = { data: [] };
+    }
+    
+    // Strategy 3: If no results, try normalized title
+    if (!data.data?.length) {
+      const normalizedTitle = normalizeSearchTitle(reference.title);
+      const normalizedQuery = encodeURIComponent(normalizedTitle);
+      const normalizedUrl = `https://api.semanticscholar.org/graph/v1/paper/search?query=${normalizedQuery}&limit=1&fields=title,authors,year,citationCount,isOpenAccess,venue,externalIds`;
+      
+      console.log(`   🔍 Semantic Scholar: Retry with normalized title: "${normalizedTitle}"`);
+      response = await fetch(normalizedUrl);
+      if (response.ok) {
+        data = await response.json();
+      } else {
+        data = { data: [] };
+      }
+    }
+    
+    // Strategy 4: If still no results, try combined author+year search
+    if (!data.data?.length && reference.authors && reference.year) {
+      const firstAuthor = extractFirstAuthor(reference.authors);
+      const combinedQuery = `${normalizeSearchTitle(reference.title)} ${firstAuthor} ${reference.year}`;
+      const combinedUrl = `https://api.semanticscholar.org/graph/v1/paper/search?query=${encodeURIComponent(combinedQuery)}&limit=1&fields=title,authors,year,citationCount,isOpenAccess,venue,externalIds`;
+      
+      console.log(`   🔍 Semantic Scholar: Retry with author+year: "${firstAuthor} ${reference.year}"`);
+      response = await fetch(combinedUrl);
+      if (response.ok) {
+        data = await response.json();
+      } else {
+        data = { data: [] };
+      }
+    }
 
-    const data = await response.json();
-
-    if (!data.data || data.data.length === 0) {
+    if (!data.data?.length) {
+      console.log(`   ❌ Semantic Scholar: No results found after all strategies`);
       return { source: 'Semantic Scholar', found: false, confidence: 0 };
     }
 
     const match = data.data[0];
     const titleSimilarity = calculateSimilarity(reference.title, match.title || '');
-    const yearMatch = reference.year === match.year;
+    
+    // Allow ±5 years difference (dates are unreliable: preprints, early access, citation errors)
+    const yearDiff = match.year ? Math.abs(reference.year - match.year) : 999;
+    const yearMatch = yearDiff <= 5;
 
-    // EXTREMELY PERMISSIVE: 20% threshold
-    if (titleSimilarity < 35) {
+    // More lenient threshold: 50% (was 35%)
+    if (titleSimilarity < 50) {
       console.log(`   ⚠️ Semantic Scholar: Title similarity too low (${titleSimilarity}%) - rejecting match`);
       return { source: 'Semantic Scholar', found: false, confidence: 0 };
     }
     
-    // BOOST confidence if DOI matches
-    if (reference.doi && match.externalIds?.DOI) {
-      const doi1 = reference.doi.toLowerCase().replace(/[^0-9./]/g, '');
-      const doi2 = match.externalIds.DOI.toLowerCase().replace(/[^0-9./]/g, '');
-      if (doi1 === doi2 || doi1.includes(doi2) || doi2.includes(doi1)) {
-        console.log(`   🎯 Semantic Scholar: DOI MATCH FOUND - Boosting confidence to 100%`);
-        titleSimilarity = 100;
-      }
-    }
+    return processSemanticScholarMatch(match, reference, titleSimilarity, yearMatch);
+  } catch (error) {
+    console.error('Semantic Scholar verification error:', error);
+    return { source: 'Semantic Scholar', found: false, confidence: 0, error: error.message };
+  }
+}
+
+/**
+ * Search Semantic Scholar by DOI
+ */
+async function searchSemanticScholarByDOI(doi) {
+  try {
+    const cleanDoi = doi.replace('https://doi.org/', '').replace('http://doi.org/', '').replace('DOI:', '').trim();
+    const url = `https://api.semanticscholar.org/graph/v1/paper/search?query=doi:${encodeURIComponent(cleanDoi)}&limit=1&fields=title,authors,year,citationCount,isOpenAccess,venue,externalIds`;
     
+    const response = await fetch(url);
+    if (!response.ok) return null;
+    
+    return await response.json();
+  } catch (error) {
+    console.error('Semantic Scholar DOI search error:', error);
+    return null;
+  }
+}
+
+/**
+ * Process Semantic Scholar match into standardized format
+ */
+function processSemanticScholarMatch(match, reference, titleSimilarity, yearMatch) {
+  const calculatedSimilarity = titleSimilarity !== undefined ? titleSimilarity : calculateSimilarity(reference.title, match.title || '');
+  const isYearMatch = yearMatch !== undefined ? yearMatch : (reference.year === match.year);
+  
     // Log match for debugging
-    console.log(`   ✅ Semantic Scholar: Found match (${titleSimilarity}% similarity)`);
+    console.log(`   ✅ Semantic Scholar: Found match (${calculatedSimilarity}% similarity)`);
+    console.log(`      Your title: "${reference.title}"`);
+    console.log(`      Found title: "${match.title}"`);
 
     // Extract ALL authors from Semantic Scholar
     const allAuthors = match.authors?.map(a => a.name).filter(Boolean) || [];
     console.log(`   📚 Semantic Scholar found ${allAuthors.length} authors:`, allAuthors);
 
+    // Detect if this is a preprint or non-peer-reviewed source
+    const venueLower = (match.venue || '').toLowerCase();
+    const papersWithCodeLower = (match.papersWithCode?.name || '').toLowerCase();
+    const isPreprintSource = venueLower.includes('preprint') ||
+                            venueLower.includes('arxiv') ||
+                            venueLower.includes('researchsquare') ||
+                            venueLower.includes('research square') ||
+                            venueLower.includes('osf') ||
+                            venueLower.includes('medrxiv') ||
+                            venueLower.includes('biorxiv') ||
+                            papersWithCodeLower.includes('preprint');
+    
+    // Semantic Scholar doesn't explicitly mark peer-review, but we can infer from absence of preprint indicators
+    const isPeerReviewed = !isPreprintSource && (match.venue && match.venue.trim() !== '');
+
     return {
       source: 'Semantic Scholar',
       found: true,
-      confidence: titleSimilarity,
+      confidence: calculatedSimilarity,
       canonical_title: match.title,
       canonical_authors: allAuthors.join(', '),
       canonical_year: match.year,
       doi: match.externalIds?.DOI,
+      is_peer_reviewed: isPeerReviewed,
+      is_preprint: isPreprintSource,
       venue: match.venue,
       cited_by_count: match.citationCount || 0,
       is_open_access: match.isOpenAccess || false,
       url: match.paperId ? `https://www.semanticscholar.org/paper/${match.paperId}` : null,
-      issues: detectIssues(reference, match, titleSimilarity, yearMatch)
+      issues: detectIssues(reference, match, calculatedSimilarity, isYearMatch, isPeerReviewed, isPreprintSource, !!(match.externalIds?.DOI))
     };
-  } catch (error) {
-    console.error('Semantic Scholar verification error:', error);
-    return { source: 'Semantic Scholar', found: false, confidence: 0, error: error.message };
-  }
 }
 
 /**
@@ -257,29 +582,36 @@ export async function crossValidateReference(reference) {
 
   const hasGarbageAuthors = !reference.authors ||
     reference.authors.length < 3 ||
-    reference.authors.toLowerCase() === 'unknown' ||
     reference.authors.toLowerCase() === 'et al.' ||
     reference.authors.toLowerCase() === 'et al';
+  
+  const hasUnknownAuthors = reference.authors && reference.authors.toLowerCase() === 'unknown';
 
-  if (hasGarbageTitle || hasGarbageAuthors) {
+  // CRITICAL: Block only if title is garbage - allow unknown authors with warning
+  if (hasGarbageTitle) {
     console.warn(`⚠️ SKIPPING verification - poor extraction quality:`);
     console.warn(`   Title: "${reference.title}" (garbage: ${hasGarbageTitle})`);
-    console.warn(`   Authors: "${reference.authors}" (garbage: ${hasGarbageAuthors})`);
 
     return {
       status: 'warning',
       confidence: 0,
-      issues: ['⚠️ EXTRACTION ERROR - Reference data appears malformed or incomplete. Please check original document.'],
+      issues: ['⚠️ EXTRACTION ERROR - Title appears malformed or incomplete. Please check original document.'],
       verified_by: [],
       canonical_title: null,
       canonical_authors: null,
       canonical_year: null,
-      doi: reference.doi || null, // Keep DOI if it was extracted
+      doi: reference.doi || null,
       venue: null,
       cited_by_count: null,
       is_retracted: false,
       all_results: []
     };
+  }
+  
+  // Warn about missing authors but continue verification
+  if (hasGarbageAuthors || hasUnknownAuthors) {
+    console.warn(`⚠️ WARNING: Author data missing or incomplete - "${reference.authors}"`);
+    console.warn(`   Continuing verification but confidence may be lower...`);
   }
 
   // Call all APIs in parallel
@@ -414,6 +746,17 @@ export async function crossValidateReference(reference) {
     allIssues.push('Low confidence match - title may be incorrect');
   }
 
+  // Aggregate peer-review status from all APIs (if any found it's peer-reviewed, it likely is)
+  const foundResults = results.filter(r => r.found);
+  const isPeerReviewedCount = foundResults.filter(r => r.is_peer_reviewed === true).length;
+  const isPreprintCount = foundResults.filter(r => r.is_preprint === true).length;
+  
+  // If ANY API says it's a preprint, mark it as preprint
+  const isPreprint = isPreprintCount > 0;
+  // If ALL found APIs say it's not peer-reviewed, mark it as such
+  const isPeerReviewed = foundResults.length > 0 && isPeerReviewedCount === foundResults.length ? true : 
+                         isPreprintCount > 0 ? false : null;
+
   return {
     status,
     confidence: overallConfidence,
@@ -426,6 +769,8 @@ export async function crossValidateReference(reference) {
     metadata: bestResult.metadata || {},
     cited_by_count: bestResult.cited_by_count,
     is_retracted: bestResult.is_retracted,
+    is_peer_reviewed: isPeerReviewed,
+    is_preprint: isPreprint,
     issues: allIssues,
     verified_by: results.filter(r => r.found).map(r => r.source),
     // External viewing links (prioritize direct paper URLs over generic search)
@@ -660,8 +1005,18 @@ function calculateSimilarity(str1, str2) {
 /**
  * Detect specific issues with a reference and provide detailed confidence breakdown
  */
-function detectIssues(original, match, titleSimilarity, yearMatch) {
+function detectIssues(original, match, titleSimilarity, yearMatch, isPeerReviewed = null, isPreprint = null) {
   const issues = [];
+
+  // Check for preprints and non-peer-reviewed sources
+  if (isPreprint === true) {
+    issues.push('� PREPRINT DETECTED - This is NOT peer-reviewed yet');
+    issues.push('   ⚠️ Preprints have not undergone formal peer review and may contain errors');
+    issues.push('   ⚠️ Consider citing the published version if available, or use with caution');
+  } else if (isPeerReviewed === false && isPreprint === false) {
+    issues.push('⚠️ NOT PEER-REVIEWED - This source may not have undergone formal peer review');
+    issues.push('   Consider finding peer-reviewed alternatives for stronger evidence');
+  }
 
   // Title mismatch - with severity levels
   if (titleSimilarity < 80) {

@@ -668,7 +668,7 @@ const ResultsOverview: React.FC<ResultsOverviewProps> = ({ onNavigate }) => {
             {/* Welcome Message */}
             <div className="text-center mb-8">
               <h1 className="text-4xl font-black text-slate-900 dark:text-white mb-3">
-                Welcome to RefCheck! 👋
+                Welcome to CheckMyBib! 👋
               </h1>
               <p className="text-lg text-slate-600 dark:text-slate-300">
                 Let's verify your first bibliography together
@@ -679,7 +679,7 @@ const ResultsOverview: React.FC<ResultsOverviewProps> = ({ onNavigate }) => {
             <div className="space-y-6 mb-8">
               <h2 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
                 <span className="material-symbols-outlined text-primary">info</span>
-                How RefCheck Works
+                How CheckMyBib Works
               </h2>
               
               <div className="grid md:grid-cols-3 gap-4">
@@ -1139,6 +1139,7 @@ const ResultsOverview: React.FC<ResultsOverviewProps> = ({ onNavigate }) => {
           isOpen={selectedRef !== null}
           onClose={() => setSelectedRef(null)}
           onApplyFix={handleApplyFix}
+          jobId={jobId}
         />
       )}
 

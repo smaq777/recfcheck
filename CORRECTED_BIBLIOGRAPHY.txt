@@ -1,0 +1,223 @@
+================================================================================
+CORRECTED BIBLIOGRAPHY METADATA WITH DOIs
+Generated: January 27, 2026
+================================================================================
+
+These are the CORRECT publication years and DOIs for your references.
+Update your BibTeX file with this information for 100% accurate verification.
+
+================================================================================
+1. Character-level Convolutional Networks for Text Classification
+================================================================================
+STATUS: ✅ FOUND - arXiv Preprint
+
+CORRECT METADATA:
+  Title: Character-level Convolutional Networks for Text Classification
+  Authors: Xiang Zhang, Junbo Zhao, Yann LeCun
+  Year: 2015 (arXiv preprint)
+  DOI: 10.48550/arxiv.1509.01626
+  Venue: arXiv
+  Type: Preprint
+  
+YOUR BIBTEX (use this):
+```bibtex
+@article{zhang2015character,
+  title={Character-level Convolutional Networks for Text Classification},
+  author={Zhang, Xiang and Zhao, Junbo and LeCun, Yann},
+  journal={arXiv preprint arXiv:1509.01626},
+  year={2015},
+  doi={10.48550/arxiv.1509.01626}
+}
+```
+
+================================================================================
+2. Moses: Open Source Toolkit for Statistical Machine Translation
+================================================================================
+STATUS: ✅ FOUND - Conference Paper
+
+CORRECT METADATA:
+  Title: Moses: Open Source Toolkit for Statistical Machine Translation
+  Authors: Philipp Koehn, Hieu Hoang, Alexandra Birch, Chris Callison-Burch, et al.
+  Year: 2007
+  Conference: ACL 2007
+  Type: Conference Paper
+  Note: No DOI available (older paper)
+  
+YOUR BIBTEX (use this):
+```bibtex
+@inproceedings{koehn2007moses,
+  title={Moses: Open Source Toolkit for Statistical Machine Translation},
+  author={Koehn, Philipp and Hoang, Hieu and Birch, Alexandra and Callison-Burch, Chris and Federico, Marcello and Bertoldi, Nicola and Cowan, Brooke and Shen, Wade and Moran, Christine and Zens, Richard and others},
+  booktitle={Proceedings of the 45th Annual Meeting of the ACL},
+  pages={177--180},
+  year={2007}
+}
+```
+
+================================================================================
+3. BERT: Pre-training of Deep Bidirectional Transformers
+================================================================================
+STATUS: ✅ FOUND - Conference Paper
+
+CORRECT METADATA:
+  Title: BERT: Pre-training of Deep Bidirectional Transformers for Language Understanding
+  Authors: Jacob Devlin, Ming-Wei Chang, Kenton Lee, Kristina Toutanova
+  Year: 2019 (NAACL 2019)
+  DOI: 10.18653/v1/N19-1423
+  Venue: NAACL-HLT 2019
+  Type: Conference Paper
+  
+YOUR BIBTEX (use this):
+```bibtex
+@inproceedings{devlin2019bert,
+  title={BERT: Pre-training of Deep Bidirectional Transformers for Language Understanding},
+  author={Devlin, Jacob and Chang, Ming-Wei and Lee, Kenton and Toutanova, Kristina},
+  booktitle={Proceedings of the 2019 Conference of the North American Chapter of the Association for Computational Linguistics: Human Language Technologies},
+  pages={4171--4186},
+  year={2019},
+  doi={10.18653/v1/N19-1423}
+}
+```
+
+================================================================================
+4. Language Models are Few-Shot Learners (GPT-3)
+================================================================================
+STATUS: ✅ FOUND - arXiv Preprint → NeurIPS 2020
+
+CORRECT METADATA:
+  Title: Language Models are Few-Shot Learners
+  Authors: Tom B. Brown, Benjamin Mann, Nick Ryder, et al. (31 authors)
+  Year: 2020 (arXiv: May 2020, NeurIPS: December 2020)
+  DOI: 10.48550/arxiv.2005.14165
+  Venue: NeurIPS 2020
+  Type: Conference Paper (initially preprint)
+  
+YOUR BIBTEX (use this):
+```bibtex
+@article{brown2020language,
+  title={Language Models are Few-Shot Learners},
+  author={Brown, Tom B and Mann, Benjamin and Ryder, Nick and Subbiah, Melanie and Kaplan, Jared and Dhariwal, Prafulla and Neelakantan, Arvind and Shyam, Pranav and Sastry, Girish and Askell, Amanda and others},
+  journal={Advances in Neural Information Processing Systems},
+  volume={33},
+  pages={1877--1901},
+  year={2020},
+  doi={10.48550/arxiv.2005.14165}
+}
+```
+
+================================================================================
+5. Training Language Models to Follow Instructions (InstructGPT)
+================================================================================
+STATUS: ✅ FOUND - arXiv Preprint → NeurIPS 2022
+
+CORRECT METADATA:
+  Title: Training language models to follow instructions with human feedback
+  Authors: Long Ouyang, Jeff Wu, Xu Jiang, et al. (20 authors)
+  Year: 2022 (arXiv: March 2022, NeurIPS: December 2022)
+  DOI: 10.48550/arxiv.2203.02155
+  Venue: NeurIPS 2022
+  Type: Conference Paper (initially preprint)
+  
+YOUR BIBTEX (use this):
+```bibtex
+@article{ouyang2022training,
+  title={Training language models to follow instructions with human feedback},
+  author={Ouyang, Long and Wu, Jeff and Jiang, Xu and Almeida, Diogo and Wainwright, Carroll L and Mishkin, Pamela and Zhang, Chong and Agarwal, Sandhini and Slama, Katarina and Ray, Alex and others},
+  journal={Advances in Neural Information Processing Systems},
+  volume={35},
+  pages={27730--27744},
+  year={2022},
+  doi={10.48550/arxiv.2203.02155}
+}
+```
+
+================================================================================
+6. The Compliance Budget
+================================================================================
+STATUS: ⚠️ YEAR MISMATCH - You have 2009, correct is 2008
+
+CORRECT METADATA:
+  Title: The compliance budget: managing security behaviour in organisations
+  Authors: Adam Beautement, M. Angela Sasse, Mike Wonham
+  Year: 2008 ❌ NOT 2009
+  DOI: 10.1145/1595676.1595684
+  Venue: NSPW '08 (New Security Paradigms Workshop)
+  Type: Workshop Paper
+  
+YOUR BIBTEX (fix the year!):
+```bibtex
+@inproceedings{beautement2008compliance,
+  title={The compliance budget: managing security behaviour in organisations},
+  author={Beautement, Adam and Sasse, M Angela and Wonham, Mike},
+  booktitle={Proceedings of the 2008 New Security Paradigms Workshop},
+  pages={47--58},
+  year={2008},
+  doi={10.1145/1595676.1595684}
+}
+```
+
+================================================================================
+7. Detecting SMS Phishing Based on Arabic Text
+================================================================================
+STATUS: ⚠️ YEAR WRONG - You have 2022, but paper is from 2025!
+
+CORRECT METADATA:
+  Title: A Deep Learning for Arabic SMS Phishing Based on URLs Detection
+  Authors: Adnan H. Zawari
+  Year: 2025 ❌ NOT 2022
+  DOI: 10.14569/ijacsa.2025.0160138
+  Venue: International Journal of Advanced Computer Science and Applications
+  Type: Journal Article
+  
+NOTE: This paper is VERY RECENT (2025). If your BibTeX says 2022, it might be citing
+a different paper or a preprint. Verify this is the correct paper you want to cite.
+
+YOUR BIBTEX (fix the year!):
+```bibtex
+@article{zawari2025detecting,
+  title={A Deep Learning for Arabic SMS Phishing Based on URLs Detection},
+  author={Zawari, Adnan H.},
+  journal={International Journal of Advanced Computer Science and Applications},
+  volume={16},
+  number={1},
+  pages={382--391},
+  year={2025},
+  doi={10.14569/ijacsa.2025.0160138}
+}
+```
+
+================================================================================
+SUMMARY OF ISSUES
+================================================================================
+
+Papers with WRONG YEARS in your BibTeX:
+  ❌ The Compliance Budget: You have 2009 → Should be 2008 (off by 1 year)
+  ❌ Arabic SMS Phishing: You have 2022 → Should be 2025 (off by 3 years!)
+
+Papers that are PREPRINTS (not peer-reviewed):
+  📄 Character-level CNN (arXiv 2015)
+  📄 GPT-3 (arXiv → NeurIPS 2020)
+  📄 InstructGPT (arXiv → NeurIPS 2022)
+
+Papers WITHOUT DOIs:
+  ⚠️ Moses (2007) - older paper, no DOI available
+
+================================================================================
+NEXT STEPS
+================================================================================
+
+1. ✅ UPDATE YEARS:
+   - Change "The Compliance Budget" from 2009 → 2008
+   - Change "Arabic SMS" from 2022 → 2025 (verify this is the right paper!)
+
+2. ✅ ADD DOIs to all entries (copy from above)
+
+3. ✅ Note preprints in your bibliography:
+   - Add "arXiv preprint" to journal field for preprints
+   - Or use the published conference version
+
+4. ✅ With ±2 year tolerance enabled, your system will now find:
+   - Papers off by 1-2 years (preprint vs conference)
+   - But you should still fix the years for accuracy
+
+================================================================================

@@ -1,5 +1,5 @@
 /**
- * Local development API server for RefCheck
+ * Local development API server for CheckMyBib
  * Handles /api/analyze and /api/results endpoints
  * Run alongside Vite dev server: npm run dev
  */
@@ -735,12 +735,12 @@ const server = http.createServer(async (req, res) => {
                 'Content-Type': 'application/json',
               },
               body: JSON.stringify({
-                from: 'RefCheck <admin@khabeerk.com>',
+                from: 'CheckMyBib <admin@khabeerk.com>',
                 to: email,
-                subject: 'Verify your RefCheck email address',
+                subject: 'Verify your CheckMyBib email address',
                 html: `
                   <div style="font-family: sans-serif; padding: 20px; color: #333; max-width: 600px;">
-                    <h2 style="color: #2c346d;">Welcome to RefCheck, ${displayName}!</h2>
+                    <h2 style="color: #2c346d;">Welcome to CheckMyBib, ${displayName}!</h2>
                     <p>Thank you for signing up! Please verify your email address to activate your account.</p>
                     <p style="margin: 20px 0; font-size: 14px; color: #666;">Enter this verification code on the website:</p>
                     <div style="margin: 30px 0; padding: 20px; background-color: #f5f5f5; border-radius: 8px; text-align: center;">
@@ -749,7 +749,7 @@ const server = http.createServer(async (req, res) => {
                     <p style="font-size: 14px; color: #666;">Copy and paste this code into the verification form to complete your registration.</p>
                     <hr style="margin-top: 30px; border: none; border-top: 1px solid #eee;">
                     <p style="font-size: 12px; color: #999;">This code expires in 24 hours. If you didn't create this account, please ignore this email.</p>
-                    <p style="font-size: 11px; color: #999;">RefCheck - Academic Bibliography Verification</p>
+                    <p style="font-size: 11px; color: #999;">CheckMyBib - Academic Bibliography Verification</p>
                   </div>
                 `,
               }),
@@ -966,9 +966,9 @@ const server = http.createServer(async (req, res) => {
                 'Content-Type': 'application/json',
               },
               body: JSON.stringify({
-                from: 'RefCheck <admin@khabeerk.com>',
+                from: 'CheckMyBib <admin@khabeerk.com>',
                 to: email,
-                subject: 'Reset your RefCheck password',
+                subject: 'Reset your CheckMyBib password',
                 html: `
                   <div style="font-family: sans-serif; padding: 20px; color: #333; max-width: 600px;">
                     <h2 style="color: #2c346d;">Password Reset Request</h2>
@@ -981,7 +981,7 @@ const server = http.createServer(async (req, res) => {
                     <p style="font-size: 12px; color: #999; word-break: break-all;">${resetUrl}</p>
                     <hr style="margin: 30px 0; border: none; border-top: 1px solid #eee;">
                     <p style="font-size: 12px; color: #999;">This link expires in 24 hours. If you didn't request a password reset, please ignore this email - your password will remain unchanged.</p>
-                    <p style="font-size: 11px; color: #999;">RefCheck - Academic Bibliography Verification</p>
+                    <p style="font-size: 11px; color: #999;">CheckMyBib - Academic Bibliography Verification</p>
                   </div>
                 `,
               }),
@@ -1232,6 +1232,8 @@ const server = http.createServer(async (req, res) => {
               suggestedVenue: verified.venue,
               suggestedDoi: verified.doi,
               is_retracted: verified.is_retracted,
+              is_peer_reviewed: verified.is_peer_reviewed,
+              is_preprint: verified.is_preprint,
               cited_by_count: verified.cited_by_count,
               google_scholar_url: verified.google_scholar_url,
               openalex_url: verified.openalex_url,
@@ -1567,7 +1569,7 @@ const server = http.createServer(async (req, res) => {
     // POST /api/accept-correction - Accept or reject a correction
     if (req.url === "/api/accept-correction" && req.method === "POST") {
       const body = await parseBody(req);
-      const { jobId, referenceId, decision, correctedData } = JSON.parse(body.toString('utf8'));
+      const { jobId, referenceId, decision, correctedData, manually_verified } = JSON.parse(body.toString('utf8'));
 
       const job = await getJobById(jobId);
       if (!job) {
@@ -1587,12 +1589,13 @@ const server = http.createServer(async (req, res) => {
       }
 
       // Update the reference in database
-      await updateReferenceDecision(referenceId, decision, correctedData);
+      await updateReferenceDecision(referenceId, decision, correctedData, manually_verified);
 
       // Log activity
-      await logActivity(userId, jobId, decision === 'accepted' ? 'accept_correction' : 'reject_correction', {
+      await logActivity(userId, jobId, decision === 'accepted' ? 'accept_correction' : decision === 'ignored' ? 'ignore_warning' : 'reject_correction', {
         referenceId,
-        correctedData
+        correctedData,
+        manually_verified
       });
 
       res.writeHead(200, { "Content-Type": "application/json" });
@@ -1927,32 +1930,31 @@ function detectDuplicates(references) {
         }
       }
 
-      // RULE 2: Title similarity using Levenshtein distance (NOT just word count!)
+      // RULE 2: Very strict title+year+author match
+      // Same authors can publish multiple similar papers - require VERY high threshold
       if (!isDuplicate && references[i].title && references[j].title) {
         const titleSim = calculateTitleSimilarity(references[i].title, references[j].title);
+        const authorSim = calculateAuthorSimilarity(references[i].authors, references[j].authors);
 
-        // For duplicate detection, require VERY high similarity (98%+)
-        // This prevents "phishing attack" papers from matching each other
-        if (titleSim > 98) {
-          // Additional check: year must match OR be within 1 year (preprint vs published)
-          const year1 = references[i].year || references[i].original_year;
-          const year2 = references[j].year || references[j].original_year;
-          const yearDiff = year1 && year2 ? Math.abs(year1 - year2) : 999;
+        // Require 99.5% title similarity AND exact year AND 80%+ author overlap
+        // This prevents "Arabic SMS phishing URLs" vs "Arabic SMS phishing text" false positives
+        const year1 = references[i].year || references[i].original_year;
+        const year2 = references[j].year || references[j].original_year;
+        const yearMatch = year1 && year2 && Math.abs(year1 - year2) === 0;
 
-          if (yearDiff <= 1) {
-            isDuplicate = true;
-            reason = `Nearly identical titles (${titleSim.toFixed(1)}%) + year match`;
-            console.log(`🔄 Duplicate found: ${reason}`);
-            console.log(`   Title 1: "${references[i].title}"`);
-            console.log(`   Title 2: "${references[j].title}"`);
-          } else {
-            console.log(`⚠️  Same title but different years (${year1} vs ${year2}) - NOT marking as duplicate`);
-          }
-        } else if (titleSim > 80) {
-          // Log similar papers for debugging (but NOT duplicates)
-          console.log(`ℹ️  Similar papers (${titleSim.toFixed(1)}% similarity) - NOT duplicates:`);
-          console.log(`   [${i}] "${references[i].title}" (${references[i].year})`);
-          console.log(`   [${j}] "${references[j].title}" (${references[j].year})`);
+        if (titleSim >= 99.5 && yearMatch && authorSim >= 80) {
+          isDuplicate = true;
+          reason = `Near-identical title (${titleSim.toFixed(1)}%) + exact year (${year1}) + author overlap (${authorSim.toFixed(1)}%)`;
+          console.log(`🔄 Duplicate found: ${reason}`);
+          console.log(`   Title 1: "${references[i].title}"`);
+          console.log(`   Title 2: "${references[j].title}"`);
+        } else if (titleSim >= 85 && yearMatch) {
+          // Log near-misses for debugging (but NOT duplicates)
+          console.log(`ℹ️  Near-miss (NOT duplicate):`);
+          console.log(`   Title similarity: ${titleSim.toFixed(1)}% (need 99.5%+)`);
+          console.log(`   Author similarity: ${authorSim.toFixed(1)}% (need 80%+)`);
+          console.log(`   [${i}] "${references[i].title?.substring(0, 60)}..."`);
+          console.log(`   [${j}] "${references[j].title?.substring(0, 60)}..."`);
         }
       }
 
@@ -1998,6 +2000,41 @@ function levenshteinDistance(str1, str2) {
   }
 
   return dp[m][n];
+}
+
+// Calculate author similarity using name overlap
+function calculateAuthorSimilarity(authors1, authors2) {
+  if (!authors1 || !authors2) return 0;
+
+  // Normalize and extract author names
+  const extractNames = (str) => {
+    const normalized = str.toLowerCase()
+      .replace(/[,;]/g, ' ')
+      .replace(/\band\b/gi, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+
+    // Split by spaces and filter out initials/short words
+    const names = normalized.split(/\s+/).filter(n => n.length > 2);
+    return new Set(names);
+  };
+
+  const names1 = extractNames(authors1);
+  const names2 = extractNames(authors2);
+
+  if (names1.size === 0 || names2.size === 0) return 0;
+
+  // Count matching names
+  let matchCount = 0;
+  for (const name of names1) {
+    if (names2.has(name)) {
+      matchCount++;
+    }
+  }
+
+  // Jaccard similarity
+  const unionSize = names1.size + names2.size - matchCount;
+  return Math.round((matchCount / unionSize) * 100);
 }
 
 // Calculate title similarity using Levenshtein distance

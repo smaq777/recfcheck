@@ -220,7 +220,7 @@ const NewCheckEnhanced: React.FC<NewCheckProps> = ({ onNavigate }) => {
                 <path fill="currentColor" d="M24 4L4 14v20c0 8 20 10 20 10s20-2 20-10V14L24 4z" />
               </svg>
             </div>
-            <h1 className="text-[#2c346d] dark:text-white text-lg font-bold">RefCheck</h1>
+            <h1 className="text-[#2c346d] dark:text-white text-lg font-bold">CheckMyBib</h1>
           </div>
 
         </div>

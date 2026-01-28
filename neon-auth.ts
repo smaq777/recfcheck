@@ -103,12 +103,12 @@ export async function sendVerificationEmail(email: string, code: string, display
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        from: 'RefCheck <admin@khabeerk.com>',
+        from: 'CheckMyBib <admin@khabeerk.com>',
         to: email,
-        subject: 'Verify your RefCheck email address',
+        subject: 'Verify your CheckMyBib email address',
         html: `
           <div style="font-family: sans-serif; padding: 20px; color: #333; max-width: 600px;">
-            <h2 style="color: #2c346d;">Welcome to RefCheck, ${displayName || 'Researcher'}!</h2>
+            <h2 style="color: #2c346d;">Welcome to CheckMyBib, ${displayName || 'Researcher'}!</h2>
             <p>Thank you for signing up! Please verify your email address to activate your account.</p>
             <p style="margin: 20px 0; font-size: 14px; color: #666;">Enter this verification code on the website:</p>
             <div style="margin: 30px 0; padding: 20px; background-color: #f5f5f5; border-radius: 8px; text-align: center;">
@@ -117,7 +117,7 @@ export async function sendVerificationEmail(email: string, code: string, display
             <p style="font-size: 14px; color: #666;">Copy and paste this code into the verification form to complete your registration.</p>
             <hr style="margin: 30px 0; border: none; border-top: 1px solid #eee;">
             <p style="font-size: 12px; color: #999;">This code expires in 24 hours. If you didn't create this account, please ignore this email.</p>
-            <p style="font-size: 11px; color: #999;">RefCheck - Academic Bibliography Verification</p>
+            <p style="font-size: 11px; color: #999;">CheckMyBib - Academic Bibliography Verification</p>
           </div>
         `,
       }),
@@ -339,9 +339,9 @@ export async function requestPasswordReset(email: string): Promise<{ success: bo
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          from: 'RefCheck <admin@khabeerk.com>',
+          from: 'CheckMyBib <admin@khabeerk.com>',
           to: email,
-          subject: 'Reset your RefCheck password',
+          subject: 'Reset your CheckMyBib password',
           html: `
             <div style="font-family: sans-serif; padding: 20px; color: #333; max-width: 600px;">
               <h2 style="color: #2c346d;">Password Reset Request</h2>
@@ -354,7 +354,7 @@ export async function requestPasswordReset(email: string): Promise<{ success: bo
               <p style="font-size: 12px; color: #999; word-break: break-all;">${resetUrl}</p>
               <hr style="margin: 30px 0; border: none; border-top: 1px solid #eee;">
               <p style="font-size: 12px; color: #999;">This link expires in 24 hours. If you didn't request a password reset, please ignore this email - your password will remain unchanged.</p>
-              <p style="font-size: 11px; color: #999;">RefCheck - Academic Bibliography Verification</p>
+              <p style="font-size: 11px; color: #999;">CheckMyBib - Academic Bibliography Verification</p>
             </div>
           `,
         }),
