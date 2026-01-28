@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Reference, ReferenceStatus } from '../types';
+import { CitationPreview } from './components/CitationPreview';
 
 interface ReferenceDetailDrawerProps {
   reference: Reference | null;
@@ -32,7 +33,7 @@ interface ReferenceUpdate {
   created_at: string;
 }
 
-type TabType = 'summary' | 'differences' | 'suggestions' | 'history';
+type TabType = 'summary' | 'differences' | 'suggestions' | 'history' | 'citation';
 
 const ReferenceDetailDrawer: React.FC<ReferenceDetailDrawerProps> = ({
   reference,
@@ -613,6 +614,15 @@ if (!jobId) {
               }`}
           >
             History
+          </button>
+          <button
+            onClick={() => setActiveTab('citation')}
+            className={`pb-3 text-sm font-semibold transition-colors ${activeTab === 'citation'
+              ? 'text-primary dark:text-indigo-400 border-b-[3px] border-primary dark:border-indigo-400 font-bold'
+              : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
+              }`}
+          >
+            Citation
           </button>
         </div>
       </div>
@@ -1508,6 +1518,25 @@ if (!jobId) {
                   );
                 })}
               </div>
+            )}
+          </section>
+        )}
+
+        {/* Citation Tab */}
+        {activeTab === 'citation' && (
+          <section className="flex flex-col gap-4">
+            <div>
+              <h3 className="text-slate-900 dark:text-white text-lg font-bold mb-1">Citation Formats</h3>
+              <p className="text-sm text-slate-500 dark:text-slate-400">
+                Generate citations in various academic styles and export formats
+              </p>
+            </div>
+
+            {reference && (
+              <CitationPreview 
+                reference={reference}
+                jobId={jobId}
+              />
             )}
           </section>
         )}

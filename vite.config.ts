@@ -10,7 +10,7 @@ export default defineConfig(({ mode }) => {
     const database = env.VITE_DATABASE_URL || env.DATABASE_URL || '';
     return {
       server: {
-        port: 3000,
+        port: 3002, // Explicitly use 3002 to avoid conflicts
         host: '0.0.0.0',
         proxy: {
           '/api': {

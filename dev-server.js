@@ -51,6 +51,26 @@ function extractUserId(req) {
 }
 
 /**
+ * Parse JSON request body from POST requests
+ */
+function parseRequestBody(req) {
+  return new Promise((resolve, reject) => {
+    let body = '';
+    req.on('data', chunk => {
+      body += chunk.toString();
+    });
+    req.on('end', () => {
+      try {
+        resolve(JSON.parse(body));
+      } catch (error) {
+        reject(new Error('Invalid JSON body'));
+      }
+    });
+    req.on('error', reject);
+  });
+}
+
+/**
  * Validate that user is authenticated
  */
 function requireAuth(req) {
@@ -1504,6 +1524,7 @@ const server = http.createServer(async (req, res) => {
         console.log('\n📋 FIRST REFERENCE RAW DATA FROM DATABASE:');
         console.log('========================================');
         console.log('ID:', references[0].id);
+        console.log('bibtex_key (original key):', references[0].bibtex_key);
         console.log('Title:', references[0].title);
         console.log('Authors (parsed from file):', references[0].authors);
         console.log('original_authors (snake_case):', references[0].original_authors);
@@ -1519,6 +1540,14 @@ const server = http.createServer(async (req, res) => {
       // Transform snake_case database fields to camelCase for frontend
       const transformedReferences = references.map(ref => ({
         ...ref,
+        // Primary fields for citation service (use canonical data as primary if available)
+        key: ref.bibtex_key || ref.key, // Preserve original BibTeX key (like "Jamil2025")
+        title: ref.canonical_title || ref.original_title || ref.title,
+        authors: ref.canonical_authors || ref.original_authors || ref.authors,
+        year: ref.canonical_year || ref.original_year || ref.year,
+        source: ref.venue || ref.original_source || ref.source,
+        
+        // CamelCase versions for frontend
         canonicalTitle: ref.canonical_title,
         canonicalYear: ref.canonical_year,
         canonicalAuthors: ref.canonical_authors,
@@ -1530,6 +1559,7 @@ const server = http.createServer(async (req, res) => {
         googleScholarUrl: ref.google_scholar_url,
         duplicateGroupId: ref.duplicate_group_id,
         isPrimaryDuplicate: ref.is_primary_duplicate,
+        
         // Keep snake_case as well for backward compatibility
         original_authors: ref.original_authors,
         canonical_title: ref.canonical_title,
@@ -1540,9 +1570,12 @@ const server = http.createServer(async (req, res) => {
       if (transformedReferences.length > 0) {
         console.log('🔄 AFTER TRANSFORMATION (camelCase):');
         console.log('========================================');
+        console.log('key (preserved):', transformedReferences[0].key);
+        console.log('title (mapped):', transformedReferences[0].title);
+        console.log('authors (mapped):', transformedReferences[0].authors);
+        console.log('year (mapped):', transformedReferences[0].year);
         console.log('canonicalAuthors (camelCase):', transformedReferences[0].canonicalAuthors);
         console.log('canonical_authors (snake_case kept):', transformedReferences[0].canonical_authors);
-        console.log('authors (original):', transformedReferences[0].authors);
         console.log('========================================\n');
       }
 
@@ -1933,6 +1966,136 @@ const server = http.createServer(async (req, res) => {
       });
       res.end(output);
       return;
+    }
+
+    // POST /api/export - Export citations with style support
+    if (req.url.startsWith("/api/export") && req.method === "POST") {
+      try {
+        const body = await parseRequestBody(req);
+        const { jobId, format = 'bibtex', style = 'apa', referenceIds } = body;
+
+        if (!jobId) {
+          res.writeHead(400, { "Content-Type": "application/json" });
+          res.end(JSON.stringify({ error: "jobId required" }));
+          return;
+        }
+
+        const job = await getJobById(jobId);
+        if (!job) {
+          res.writeHead(404, { "Content-Type": "application/json" });
+          res.end(JSON.stringify({ error: "Job not found" }));
+          return;
+        }
+
+        // Get references (all or specific IDs)
+        let references = await getJobReferences(jobId);
+        
+        // Filter by specific reference IDs if provided
+        if (referenceIds && referenceIds.length > 0) {
+          references = references.filter(ref => referenceIds.includes(ref.id));
+        }
+
+        // Helper function to format authors for APA style
+        const formatAuthorsForAPA = (authorsString) => {
+          if (!authorsString) return 'Unknown Author';
+          
+          const authors = authorsString.split(' and ');
+          
+          if (authors.length === 1) {
+            return authors[0].trim();
+          } else if (authors.length === 2) {
+            return `${authors[0]} & ${authors[1]}`;
+          } else {
+            // Show all authors for bibliography (up to 20)
+            if (authors.length <= 20) {
+              return authors.slice(0, -1).join(', ') + ', & ' + authors[authors.length - 1];
+            } else {
+              return `${authors[0]} et al.`;
+            }
+          }
+        };
+
+        // Import citation service (simulated since we can't actually import in dev server)
+        const generateExportContent = (refs, format, style) => {
+          let content = '';
+          
+          for (const ref of refs) {
+            const key = ref.bibtex_key || ref.key || `${ref.canonical_authors?.split(' ')[0] || 'Unknown'}${ref.canonical_year || '0000'}`;
+            const title = ref.canonical_title || ref.original_title || 'Unknown Title';
+            const rawAuthors = ref.canonical_authors || ref.original_authors || 'Unknown Author';
+            // Use original year first (user's data), only fall back to canonical if original is missing
+            const year = ref.original_year || ref.canonical_year || 'Unknown Year';
+            const journal = ref.venue || ref.original_source || 'Unknown Venue';
+            const doi = ref.doi || null;
+            
+            // Format authors based on citation style - always use APA formatting for export
+            const formattedAuthors = formatAuthorsForAPA(rawAuthors);
+            
+            switch (format) {
+              case 'bibtex':
+                content += `@article{${key},\n`;
+                content += `  title = {${title}},\n`;
+                content += `  author = {${rawAuthors}},\n`; // Keep original format for BibTeX
+                content += `  year = {${year}},\n`;
+                content += `  journal = {${journal}},\n`;
+                if (doi) content += `  doi = {${doi}},\n`;
+                content += `}\n\n`;
+                break;
+              
+              case 'json':
+                const jsonRef = { key, title, authors: formattedAuthors, year, journal, doi };
+                content += JSON.stringify(jsonRef, null, 2) + '\n';
+                break;
+                
+              case 'csv':
+                if (content === '') {
+                  content = 'Key,Title,Authors,Year,Journal,DOI\n'; // Header
+                }
+                content += `"${key}","${title}","${formattedAuthors}","${year}","${journal}","${doi || ''}"\n`;
+                break;
+                
+              default:
+                // Word/text format with proper APA formatting (matches website display)
+                const bibliographyEntry = `${formattedAuthors}. (${year}). ${title}. ${journal}.${doi ? ` https://doi.org/${doi}` : ''}`;
+                content += bibliographyEntry + '\n\n';
+            }
+          }
+          
+          return content;
+        };
+
+        const content = generateExportContent(references, format, style);
+        
+        // Set appropriate headers
+        const mimeTypes = {
+          bibtex: 'application/x-bibtex',
+          json: 'application/json',
+          csv: 'text/csv',
+          latex: 'text/plain'
+        };
+        
+        const extensions = {
+          bibtex: 'bib',
+          json: 'json', 
+          csv: 'csv',
+          latex: 'tex'
+        };
+
+        const filename = `citations_${style}.${extensions[format] || 'txt'}`;
+
+        res.writeHead(200, {
+          "Content-Type": mimeTypes[format] || 'text/plain',
+          "Content-Disposition": `attachment; filename="${filename}"`
+        });
+        res.end(content);
+        return;
+        
+      } catch (error) {
+        console.error('Export error:', error);
+        res.writeHead(500, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ error: 'Export failed', details: error.message }));
+        return;
+      }
     }
 
     // Health check
