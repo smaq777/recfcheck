@@ -1135,6 +1135,15 @@ const ResultsOverview: React.FC<ResultsOverviewProps> = ({ onNavigate }) => {
             canonicalYear: selectedRef.canonical_year || undefined,
             canonicalAuthors: selectedRef.canonical_authors || undefined,
             venue: selectedRef.venue || undefined,
+            // Add verification URLs
+            google_scholar_url: selectedRef.google_scholar_url || selectedRef.googleScholarUrl,
+            googleScholarUrl: selectedRef.googleScholarUrl || selectedRef.google_scholar_url,
+            openalex_url: selectedRef.openalex_url || selectedRef.openalexUrl,
+            openalexUrl: selectedRef.openalexUrl || selectedRef.openalex_url,
+            crossref_url: selectedRef.crossref_url || selectedRef.crossrefUrl,
+            crossrefUrl: selectedRef.crossrefUrl || selectedRef.crossref_url,
+            semantic_scholar_url: selectedRef.semantic_scholar_url || selectedRef.semanticScholarUrl,
+            semanticScholarUrl: selectedRef.semanticScholarUrl || selectedRef.semantic_scholar_url,
           }}
           isOpen={selectedRef !== null}
           onClose={() => setSelectedRef(null)}

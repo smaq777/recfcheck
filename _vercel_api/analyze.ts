@@ -362,6 +362,9 @@ async function analyzeReferencesAsync(jobId: string, userId: string, references:
         // Determine final status
         const finalStatus = isDuplicate ? 'duplicate' : (verification.status as any);
 
+        // 3.5. Generate Google Scholar search URL (free, no API needed)
+        const googleScholarUrl = `https://scholar.google.com/scholar?q=${encodeURIComponent(`${ref.title}${ref.year ? ' ' + ref.year : ''}`)}`.trim();
+
         // 4. Save to database
         await saveBibliographyReference({
           job_id: jobId,
@@ -385,6 +388,7 @@ async function analyzeReferencesAsync(jobId: string, userId: string, references:
           ai_insight: aiInsight,
           duplicate_group_id: duplicateGroupId,
           is_primary_duplicate: isPrimaryDuplicate,
+          google_scholar_url: googleScholarUrl,
         });
 
         // Count statuses correctly

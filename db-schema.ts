@@ -60,6 +60,7 @@ CREATE TABLE IF NOT EXISTS bibliography_references (
   issues TEXT[],
   is_retracted BOOLEAN DEFAULT false,
   ai_insight TEXT,
+  google_scholar_url TEXT,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );

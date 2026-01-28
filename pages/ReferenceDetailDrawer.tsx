@@ -45,6 +45,16 @@ const ReferenceDetailDrawer: React.FC<ReferenceDetailDrawerProps> = ({
 
   if (!reference) return null;
 
+  // DEBUG: Log verification URLs
+  console.log('[ReferenceDetailDrawer] Verification URLs:', {
+    google_scholar_url: reference.google_scholar_url,
+    googleScholarUrl: (reference as any).googleScholarUrl,
+    openalex_url: reference.openalex_url,
+    openalexUrl: (reference as any).openalexUrl,
+    crossref_url: reference.crossref_url,
+    crossrefUrl: (reference as any).crossrefUrl
+  });
+
   // Get values with fallback for both naming conventions (canonical_title vs canonicalTitle)
   const canonicalTitle = (reference as any).canonical_title || reference.canonicalTitle;
   const canonicalYear = (reference as any).canonical_year || reference.canonicalYear;
@@ -688,7 +698,7 @@ if (!jobId) {
                 <span className="material-symbols-outlined text-[18px]">format_quote</span>
                 Citation Information
               </h4>
-              <div className="space-y-3">
+              <div className="space-y-4">
                 <div>
                   <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">DOI</p>
                   {reference.doi ? (
@@ -711,84 +721,65 @@ if (!jobId) {
                     {reference.citedByCount || reference.cited_by_count || <span className="text-slate-400 italic">N/A</span>}
                   </p>
                 </div>
+                
+                {/* Verification Sources */}
+                {(reference.openalex_url || reference.openalexUrl || reference.crossref_url || reference.crossrefUrl || reference.semantic_scholar_url || reference.semanticScholarUrl || reference.google_scholar_url || reference.googleScholarUrl) && (
+                  <div className="pt-3 border-t border-slate-200 dark:border-slate-700">
+                    <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">Verification Sources</p>
+                    <div className="flex flex-wrap gap-2">
+                      {(reference.openalex_url || reference.openalexUrl) && (
+                        <a
+                          href={reference.openalex_url || reference.openalexUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors text-xs font-medium text-blue-700 dark:text-blue-400"
+                        >
+                          <span className="material-symbols-outlined text-[14px]">science</span>
+                          OpenAlex
+                          <span className="material-symbols-outlined text-[12px]">open_in_new</span>
+                        </a>
+                      )}
+                      {(reference.crossref_url || reference.crossrefUrl) && (
+                        <a
+                          href={reference.crossref_url || reference.crossrefUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg hover:bg-green-100 dark:hover:bg-green-900/30 transition-colors text-xs font-medium text-green-700 dark:text-green-400"
+                        >
+                          <span className="material-symbols-outlined text-[14px]">check_circle</span>
+                          Crossref
+                          <span className="material-symbols-outlined text-[12px]">open_in_new</span>
+                        </a>
+                      )}
+                      {(reference.semantic_scholar_url || reference.semanticScholarUrl) && (
+                        <a
+                          href={reference.semantic_scholar_url || reference.semanticScholarUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-lg hover:bg-purple-100 dark:hover:bg-purple-900/30 transition-colors text-xs font-medium text-purple-700 dark:text-purple-400"
+                        >
+                          <span className="material-symbols-outlined text-[14px]">school</span>
+                          Semantic Scholar
+                          <span className="material-symbols-outlined text-[12px]">open_in_new</span>
+                        </a>
+                      )}
+                      {(reference.google_scholar_url || reference.googleScholarUrl) && (
+                        <a
+                          href={reference.google_scholar_url || reference.googleScholarUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors text-xs font-medium text-red-700 dark:text-red-400"
+                        >
+                          <span className="material-symbols-outlined text-[14px]">search</span>
+                          Google Scholar
+                          <span className="material-symbols-outlined text-[12px]">open_in_new</span>
+                        </a>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
-
-            {/* Verification URLs Card */}
-            {(reference.openalex_url || reference.crossref_url || reference.semantic_scholar_url || reference.google_scholar_url) && (
-              <div className="bg-white dark:bg-surface-dark rounded-lg border border-slate-200 dark:border-slate-800 p-6">
-                <h4 className="text-sm font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-4 flex items-center gap-2">
-                  <span className="material-symbols-outlined text-[18px]">verified</span>
-                  Verification Sources
-                </h4>
-                <div className="space-y-2.5">
-                  {reference.openalex_url && (
-                    <a
-                      href={reference.openalex_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center justify-between p-3 rounded-lg border border-slate-200 dark:border-slate-700 hover:border-primary dark:hover:border-indigo-400 hover:bg-primary/5 dark:hover:bg-indigo-900/20 transition-all group"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
-                          <span className="material-symbols-outlined text-blue-600 dark:text-blue-400 text-[18px]">science</span>
-                        </div>
-                        <span className="text-sm font-medium text-slate-700 dark:text-slate-300">OpenAlex</span>
-                      </div>
-                      <span className="material-symbols-outlined text-slate-400 group-hover:text-primary dark:group-hover:text-indigo-400 text-[18px]">open_in_new</span>
-                    </a>
-                  )}
-                  {reference.crossref_url && (
-                    <a
-                      href={reference.crossref_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center justify-between p-3 rounded-lg border border-slate-200 dark:border-slate-700 hover:border-primary dark:hover:border-indigo-400 hover:bg-primary/5 dark:hover:bg-indigo-900/20 transition-all group"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
-                          <span className="material-symbols-outlined text-green-600 dark:text-green-400 text-[18px]">check_circle</span>
-                        </div>
-                        <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Crossref</span>
-                      </div>
-                      <span className="material-symbols-outlined text-slate-400 group-hover:text-primary dark:group-hover:text-indigo-400 text-[18px]">open_in_new</span>
-                    </a>
-                  )}
-                  {reference.semantic_scholar_url && (
-                    <a
-                      href={reference.semantic_scholar_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center justify-between p-3 rounded-lg border border-slate-200 dark:border-slate-700 hover:border-primary dark:hover:border-indigo-400 hover:bg-primary/5 dark:hover:bg-indigo-900/20 transition-all group"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center">
-                          <span className="material-symbols-outlined text-purple-600 dark:text-purple-400 text-[18px]">school</span>
-                        </div>
-                        <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Semantic Scholar</span>
-                      </div>
-                      <span className="material-symbols-outlined text-slate-400 group-hover:text-primary dark:group-hover:text-indigo-400 text-[18px]">open_in_new</span>
-                    </a>
-                  )}
-                  {reference.google_scholar_url && (
-                    <a
-                      href={reference.google_scholar_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center justify-between p-3 rounded-lg border border-slate-200 dark:border-slate-700 hover:border-primary dark:hover:border-indigo-400 hover:bg-primary/5 dark:hover:bg-indigo-900/20 transition-all group"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
-                          <span className="material-symbols-outlined text-red-600 dark:text-red-400 text-[18px]">search</span>
-                        </div>
-                        <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Google Scholar</span>
-                      </div>
-                      <span className="material-symbols-outlined text-slate-400 group-hover:text-primary dark:group-hover:text-indigo-400 text-[18px]">open_in_new</span>
-                    </a>
-                  )}
-                </div>
-              </div>
-            )}
 
             {/* Issues Card */}
             {reference.issues && reference.issues.length > 0 && (
