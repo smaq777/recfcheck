@@ -116,6 +116,7 @@ export async function initializeDatabase() {
         issues TEXT[],
         is_retracted BOOLEAN DEFAULT false,
         ai_insight TEXT,
+        google_scholar_url TEXT,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
@@ -184,14 +185,15 @@ export async function saveBibliographyReference(ref: Partial<BibliographyReferen
     `INSERT INTO bibliography_references (
       job_id, user_id, bibtex_key, title, authors, year, source, doi, url,
       status, confidence_score, canonical_title, canonical_year, venue, issues, is_retracted, ai_insight,
-      duplicate_group_id, is_primary_duplicate
-     ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)
+      duplicate_group_id, is_primary_duplicate, google_scholar_url
+     ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20)
      RETURNING *`,
     [
       ref.job_id, ref.user_id, ref.bibtex_key, ref.title, ref.authors, ref.year, ref.source, ref.doi, ref.url,
       ref.status || 'pending', ref.confidence_score || 0, ref.canonical_title, ref.canonical_year, ref.venue,
       ref.issues || [], ref.is_retracted || false, ref.ai_insight,
-      (ref as any).duplicate_group_id || null, (ref as any).is_primary_duplicate || false
+      (ref as any).duplicate_group_id || null, (ref as any).is_primary_duplicate || false,
+      (ref as any).google_scholar_url || null
     ]
   );
   return result.rows?.[0];
